@@ -30,4 +30,6 @@ jobs:
         echo "machine git.heroku.com login ${{ secrets.HEROKU_EMAIL }} password ${{ secrets.HEROKU_API_KEY }}" >> ~/.netrc
         chmod 600 ~/.netrc
         git remote add heroku https://git.heroku.com/sugar-marketplace-app.git
-        git push heroku main
+        git fetch heroku
+        git reset --soft heroku/main
+        git push heroku main --force
