@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
 
 const app = express();
@@ -12,6 +13,7 @@ connectDB();
 
 // Security Middleware
 app.use(helmet()); // Adds various HTTP headers for security
+app.use(cors({ origin: process.env.CORS_ORIGIN })); // Configure CORS
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -21,9 +23,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(expressSanitizer()); // Sanitize inputs
 
 // Routes
 const userRoutes = require('./routes/userRoutes');
