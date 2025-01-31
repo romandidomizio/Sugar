@@ -1,12 +1,12 @@
 {
   "name": "sugar",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "server.js",
   "scripts": {
+    "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "start": "npm start --prefix backend"
+    "web": "expo start --web"
   },
   "dependencies": {
     "@react-navigation/native": "^7.0.14",
