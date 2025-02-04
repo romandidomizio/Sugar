@@ -1,4 +1,4 @@
-# Sugar Marketplace Project
+# Sugar Development README
 
 ## Overview
 Sugar is a hyper-local online marketplace for buying and selling food. This project consists of a backend API built with Node.js and Express, a MongoDB database hosted on MongoDB Atlas, and a frontend developed using React Native with Expo.
@@ -96,11 +96,9 @@ Sugar is a hyper-local online marketplace for buying and selling food. This proj
 
 ## Security Best Practices
 - Validate and sanitize inputs on both frontend and backend.
-- Implement CORS and rate limiting on your backend to prevent abuse.
 
 ## Troubleshooting
 - **Database Connection Issues:** Ensure your `MONGODB_URI` is correct and network settings allow access.
-- **Expo Issues:** Ensure the Expo Go app is up to date.
 
 ## Contact
 For any questions or issues, please contact the project maintainer at [rodi1364@colorado.edu].
