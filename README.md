@@ -70,7 +70,7 @@ Sugar is a hyper-local online marketplace for buying and selling food. This proj
   ```
 - Develop your feature, ensuring you follow coding standards and best practices.
 
-### Testing
+### Testing (no tests are written yet)
 - Run tests to ensure your changes do not break existing functionality:
   ```bash
   npm test
