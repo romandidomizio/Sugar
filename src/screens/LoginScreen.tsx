@@ -7,6 +7,7 @@ import axios from 'axios';
 
 type RootStackParamList = {
   Login: undefined;
+  Register: undefined;
   Home: undefined;
 };
 
@@ -16,14 +17,6 @@ const LoginScreen = ({ navigation }: { navigation: NativeStackScreenProps<RootSt
   const loginValidationSchema = Yup.object().shape({
     username: Yup.string().required('Username is required'),
     password: Yup.string().required('Password is required'),
-  });
-
-  const registerValidationSchema = Yup.object().shape({
-    username: Yup.string().required('Username is required'),
-    password: Yup.string().required('Password is required'),
-    name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    phone: Yup.string().required('Phone number is required'),
   });
 
   const handleLogin = async (values: { username: string; password: string }) => {
@@ -37,20 +30,9 @@ const LoginScreen = ({ navigation }: { navigation: NativeStackScreenProps<RootSt
     }
   };
 
-  const handleRegister = async (values: { username: string; password: string; name: string; email: string; phone: string }) => {
-    try {
-      const response = await axios.post(`${API_URL}/register`, values);
-      console.log('Registration successful:', response.data);
-      navigation.navigate('Home');
-    } catch (error) {
-      console.error('Registration error:', error.response?.data || error.message);
-      Alert.alert('Registration failed', 'Please try again.');
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Sugar</Text>
+      <Text style={styles.title}>Login</Text>
       <Formik
         initialValues={{ username: '', password: '' }}
         validationSchema={loginValidationSchema}
@@ -79,59 +61,7 @@ const LoginScreen = ({ navigation }: { navigation: NativeStackScreenProps<RootSt
           </View>
         )}
       </Formik>
-
-      <Formik
-        initialValues={{ username: '', password: '', name: '', email: '', phone: '' }}
-        validationSchema={registerValidationSchema}
-        onSubmit={handleRegister}
-      >
-        {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-          <View>
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              onChangeText={handleChange('username')}
-              onBlur={handleBlur('username')}
-              value={values.username}
-            />
-            {errors.username && touched.username && <Text style={styles.error}>{errors.username}</Text>}
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              onChangeText={handleChange('password')}
-              onBlur={handleBlur('password')}
-              value={values.password}
-            />
-            {errors.password && touched.password && <Text style={styles.error}>{errors.password}</Text>}
-            <TextInput
-              style={styles.input}
-              placeholder="Name"
-              onChangeText={handleChange('name')}
-              onBlur={handleBlur('name')}
-              value={values.name}
-            />
-            {errors.name && touched.name && <Text style={styles.error}>{errors.name}</Text>}
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              onChangeText={handleChange('email')}
-              onBlur={handleBlur('email')}
-              value={values.email}
-            />
-            {errors.email && touched.email && <Text style={styles.error}>{errors.email}</Text>}
-            <TextInput
-              style={styles.input}
-              placeholder="Phone"
-              onChangeText={handleChange('phone')}
-              onBlur={handleBlur('phone')}
-              value={values.phone}
-            />
-            {errors.phone && touched.phone && <Text style={styles.error}>{errors.phone}</Text>}
-            <Button title="Register" onPress={handleSubmit as any} color="#006400" />
-          </View>
-        )}
-      </Formik>
+      <Button title="Go to Register" onPress={() => navigation.navigate('Register')} color="#006400" />
     </View>
   );
 };
