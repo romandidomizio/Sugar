@@ -1,19 +1,73 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Appbar, useTheme } from 'react-native-paper';
+
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import { SugarTheme } from '../theme/SugarTheme';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
+
+const CustomNavigationBar = ({ navigation, back, route }: any) => {
+  const theme = useTheme();
+  const routeName = route?.name || 'Sugar';
+  
+  return (
+    <Appbar.Header 
+      mode="small"
+      style={{ 
+        backgroundColor: theme.colors.primary 
+      }}
+    >
+      {back ? (
+        <Appbar.BackAction 
+          onPress={() => navigation.goBack()}
+          iconColor={theme.colors.surface}
+        />
+      ) : null}
+      <Appbar.Content 
+        title={routeName}
+        titleStyle={{ color: theme.colors.surface }}
+      />
+    </Appbar.Header>
+  );
+};
 
 const MainNavigator = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+    <NavigationContainer theme={SugarTheme}>
+      <Stack.Navigator
+        screenOptions={({ navigation, route }) => ({
+          header: (props) => (
+            <CustomNavigationBar 
+              {...props} 
+              navigation={navigation} 
+              route={route}
+            />
+          ),
+        })}
+        initialRouteName="ComponentPlayground"
+      >
+        <Stack.Screen 
+          name="ComponentPlayground" 
+          component={ComponentPlaygroundScreen} 
+        />
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={RegisterScreen} 
+        />
+        <Stack.Screen 
+          name="Home" 
+          component={HomeScreen} 
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

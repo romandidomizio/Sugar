@@ -1,23 +1,21 @@
 import React from 'react';
-import MainNavigator from './src/navigation/MainNavigator';
-import { AuthProvider } from './src/context/AuthContext';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider } from 'react-native-paper';
+
+import { SugarTheme } from './src/theme/SugarTheme';
+import { AppProvider } from './src/contexts/AppContext';
+import MainNavigator from './src/navigation/MainNavigator';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainNavigator />
-      <StatusBar style="auto" />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={SugarTheme}>
+        <AppProvider>
+          <MainNavigator />
+          <StatusBar style="auto" />
+        </AppProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

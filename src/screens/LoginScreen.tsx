@@ -1,67 +1,128 @@
-import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useTheme, Text } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import axios from 'axios';
+
+import { PaperInput } from '../components/paper';
+import { PaperButton } from '../components/paper';
+import { PaperModal } from '../components/paper';
+import { useAppContext } from '../contexts/AppContext';
 
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
+  Register: undefined;
 };
 
-const API_URL = process.env.API_URL || 'http://localhost:3000/api/users';
+const LoginSchema = Yup.object().shape({
+  username: Yup.string().required('Username is required'),
+  password: Yup.string().required('Password is required'),
+});
 
-const LoginScreen = ({ navigation }: { navigation: NativeStackScreenProps<RootStackParamList, 'Login'>['navigation'] }) => {
-  const loginValidationSchema = Yup.object().shape({
-    username: Yup.string().required('Username is required'),
-    password: Yup.string().required('Password is required'),
-  });
+const LoginScreen: React.FC = () => {
+  const theme = useTheme();
+  const navigation = useNavigation();
+  const { login, state, clearError } = useAppContext();
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
 
   const handleLogin = async (values: { username: string; password: string }) => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, values);
-      console.log('Login successful:', response.data);
+    const success = await login(values.username, values.password);
+    
+    if (success) {
       navigation.navigate('Home');
-    } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
-      Alert.alert('Login failed', 'Please check your credentials.');
+    } else {
+      setErrorModalVisible(true);
     }
   };
 
+  const handleErrorModalDismiss = () => {
+    setErrorModalVisible(false);
+    clearError();
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <Formik
-        initialValues={{ username: '', password: '' }}
-        validationSchema={loginValidationSchema}
-        onSubmit={handleLogin}
-      >
-        {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-          <View>
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              onChangeText={handleChange('username')}
-              onBlur={handleBlur('username')}
-              value={values.username}
-            />
-            {errors.username && touched.username && <Text style={styles.error}>{errors.username}</Text>}
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              onChangeText={handleChange('password')}
-              onBlur={handleBlur('password')}
-              value={values.password}
-            />
-            {errors.password && touched.password && <Text style={styles.error}>{errors.password}</Text>}
-            <Button title="Login" onPress={handleSubmit as any} color="#2E8B57" />
-          </View>
-        )}
-      </Formik>
-      <Button title="Go to Register" onPress={() => navigation.navigate('Register')} color="#006400" />
+    <View 
+      style={[
+        styles.container, 
+        { backgroundColor: theme.colors.background }
+      ]}
+    >
+      <View style={styles.content}>
+        <Text 
+          variant="headlineLarge" 
+          style={[
+            styles.title, 
+            { color: theme.colors.primary }
+          ]}
+        >
+          Sugar
+        </Text>
+
+        <Formik
+          initialValues={{ username: '', password: '' }}
+          validationSchema={LoginSchema}
+          onSubmit={handleLogin}
+        >
+          {({ 
+            handleChange, 
+            handleBlur, 
+            handleSubmit, 
+            values, 
+            errors, 
+            touched 
+          }) => (
+            <View style={styles.formContainer}>
+              <PaperInput
+                label="Username"
+                value={values.username}
+                onChangeText={handleChange('username')}
+                onBlur={handleBlur('username')}
+                error={touched.username ? errors.username : undefined}
+                autoCapitalize="none"
+              />
+
+              <PaperInput
+                label="Password"
+                value={values.password}
+                onChangeText={handleChange('password')}
+                onBlur={handleBlur('password')}
+                error={touched.password ? errors.password : undefined}
+                secureTextEntry
+              />
+
+              <PaperButton
+                mode="contained"
+                onPress={handleSubmit}
+                style={styles.loginButton}
+                width="full"
+              >
+                Login
+              </PaperButton>
+
+              <PaperButton
+                mode="text"
+                onPress={() => navigation.navigate('Register')}
+                style={styles.createAccountButton}
+                width="full"
+              >
+                Create an Account
+              </PaperButton>
+            </View>
+          )}
+        </Formik>
+
+        <PaperModal
+          visible={errorModalVisible}
+          onDismiss={handleErrorModalDismiss}
+          title="Login Error"
+          content={state.auth.error || 'Authentication failed'}
+          confirmText="Try Again"
+          onConfirm={handleErrorModalDismiss}
+        />
+      </View>
     </View>
   );
 };
@@ -69,29 +130,26 @@ const LoginScreen = ({ navigation }: { navigation: NativeStackScreenProps<RootSt
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#F0FFF0',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
-    color: '#2E8B57',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#8FBC8F',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: '#FFF',
+  formContainer: {
+    width: '100%',
   },
-  error: {
-    fontSize: 12,
-    color: 'red',
-    marginBottom: 10,
+  loginButton: {
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+  createAccountButton: {
+    marginTop: 10,
+    alignSelf: 'center',
   },
 });
 
