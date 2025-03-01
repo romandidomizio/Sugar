@@ -7,7 +7,6 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
-import RegisterScreen from '../screens/RegisterScreen';
 import { SugarTheme } from '../theme/SugarTheme';
 
 const Stack = createStackNavigator();
