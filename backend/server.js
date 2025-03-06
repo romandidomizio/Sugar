@@ -13,7 +13,7 @@ connectDB();
 
 // Security Middleware
 app.use(helmet()); // Adds various HTTP headers for security
-app.use(cors({ origin: process.env.CORS_ORIGIN })); // Configure CORS
+app.use(cors({ origin: '*' })); // Allow requests from any origin
 
 // Rate Limiting
 const limiter = rateLimit({

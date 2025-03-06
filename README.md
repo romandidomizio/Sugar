@@ -55,14 +55,29 @@ We use React Native Paper as our primary UI component library to ensure:
   ```
 
 ### 3. Configure Environment Variables
-- Ensure you have a `.env` file in the `backend` directory with the following variables:
-  ```
-  PORT=3000
-  JWT_SECRET=your_jwt_secret_here
-  NODE_ENV=development
-  MONGODB_URI=mongodb+srv://dev-user:CAnyLmwtjZXRDrkl@sugarcluster.mssvz.mongodb.net/?retryWrites=true&w=majority&appName=SugarCluster
-  CORS_ORIGIN=http://localhost:3000
-  ```
+
+#### Backend Environment Configuration
+
+Ensure your `.env` file in the `backend` directory matches the following configuration exactly:
+
+```
+PORT=3000
+JWT_SECRET=ncdewfh347456438r74r3ig2gdgwtsfqtfeh43k6jgnfnvwy61r42e1rsoefmo595699347yegegqggqhndfkkfkfnr05
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://dev-user:sugardevuser1@sugarcluster.mssvz.mongodb.net/sugar_marketplace?retryWrites=true&w=majority&appName=SugarCluster
+JWT_EXPIRATION=1h
+```
+
+#### Frontend Environment Configuration
+
+Create a `.env` file in the root of the project with the following content. Change `DEVICE_TYPE` to `android` if you are not using macOS:
+
+```
+DEVICE_TYPE=mac  # Set to 'android' or 'mac'
+# EXPO_PUBLIC_API_URL=http://your-api-url.com/api/users
+```
+
+These configurations ensure that the application runs correctly across different development environments.
 
 ### 4. Start the Development Servers
 - Start the backend server:

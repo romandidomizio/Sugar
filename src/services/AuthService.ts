@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/types';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/users';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || (process.env.DEVICE_TYPE === 'android' ? 'http://10.0.2.2:3000/api/users' : 'http://localhost:3000/api/users');
 
 interface LoginCredentials {
   username: string;

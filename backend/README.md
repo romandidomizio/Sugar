@@ -11,26 +11,30 @@
    npm install
    ```
 
-3. Create a `.env` file with the following variables:
-   ```
-   PORT=3000
-   JWT_SECRET=your_jwt_secret_here
-   NODE_ENV=development
-   MONGODB_URI=your_mongodb_uri_here
-   CORS_ORIGIN=your_cors_origin_here
-   ```
+## Environment Configuration
 
-## Database Setup
-- Ensure you have a MongoDB Atlas account.
-- Create a cluster and database for the Sugar Marketplace.
-- Update the `.env` file with your `MONGODB_URI`.
+### Backend Environment Configuration
 
-## Environment Variables
-- `PORT`: The port on which the server runs.
-- `JWT_SECRET`: Secret key for JWT authentication.
-- `NODE_ENV`: Environment mode (development/production).
-- `MONGODB_URI`: MongoDB connection string.
-- `CORS_ORIGIN`: Allowed origins for CORS.
+Ensure your `.env` file in the `backend` directory matches the following configuration exactly:
+
+```
+PORT=3000
+JWT_SECRET=ncdewfh347456438r74r3ig2gdgwtsfqtfeh43k6jgnfnvwy61r42e1rsoefmo595699347yegegqggqhndfkkfkfnr05
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://dev-user:sugardevuser1@sugarcluster.mssvz.mongodb.net/sugar_marketplace?retryWrites=true&w=majority&appName=SugarCluster
+JWT_EXPIRATION=1h
+```
+
+### Frontend Environment Configuration
+
+Create a `.env` file in the root of the project with the following content. Change `DEVICE_TYPE` to `android` if you are not using macOS:
+
+```
+DEVICE_TYPE=mac  # Set to 'android' or 'mac'
+# EXPO_PUBLIC_API_URL=http://your-api-url.com/api/users
+```
+
+These configurations ensure that the application runs correctly across different development environments.
 
 ## Running the Application
 - Start the backend server:
