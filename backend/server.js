@@ -5,15 +5,41 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
+const mongoose = require('mongoose');
 
 const app = express();
 
 // Connect to Database
 connectDB();
 
+// Database operation logging
+mongoose.set('debug', true);
+
 // Security Middleware
 app.use(helmet()); // Adds various HTTP headers for security
-app.use(cors({ origin: '*' })); // Allow requests from any origin
+
+// Enhanced request and response logging
+app.use((req, res, next) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  console.log('Request body:', req.body);
+  const originalSend = res.send;
+  res.send = function (body) {
+    console.log('Response body:', body);
+    return originalSend.apply(this, arguments);
+  };
+  next();
+});
+
+// CORS configuration logging
+app.use(cors({ 
+  origin: '*',
+  preflightContinue: true,
+  optionsSuccessStatus: 204,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Authorization'],
+  credentials: true
+}));
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -27,21 +53,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(expressSanitizer()); // Sanitize inputs
 
+// Review authentication middleware
+const authMiddleware = require('./middleware/authMiddleware');
+
 // Routes
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
+
+// Apply authMiddleware selectively to routes that require authentication
+app.use('/api/users/profile', authMiddleware);
 
 // Basic route
 app.get('/', (req, res) => {
   res.send('Sugar Marketplace Backend - Secure and Ready!');
 });
 
-// Error Handling Middleware
+// Error handling and messaging
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'production' ? {} : err.message 
+  console.error('Error occurred:', err);
+  res.status(err.status || 500).json({
+    message: 'An error occurred',
+    error: process.env.NODE_ENV === 'production' ? {} : err.message
   });
 });
 
