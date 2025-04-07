@@ -7,6 +7,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
+import NotifsScreen from '../screens/NotifsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
 import CommunityScreen from '../screens/CommunityScreen'; // Import the CommunityScreen
 import PostScreen from '../screens/PostScreen'; // Import the postScreen
@@ -95,6 +97,16 @@ const MainNavigator = () => {
             <Stack.Screen
               name="MyListings"
               component={MyListingsScreen}
+            />
+
+            <Stack.Screen
+              name="Notifs"
+              component={NotifsScreen}
+            />
+
+            <Stack.Screen
+              name="Profile"
+              component={ProfileScreen}
             />
       </Stack.Navigator>
     </NavigationContainer>

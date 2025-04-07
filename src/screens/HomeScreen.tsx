@@ -119,10 +119,10 @@ const HomeScreen: React.FC = () => {
                 </Badge>
               )}
             </View>
-            <PaperButton mode="text" onPress={() => console.log('Bell Clicked')}>
+            <PaperButton mode="text" onPress={() => navigation.navigate('Notifs')}>
               Notifs
             </PaperButton>
-            <PaperButton mode="text" onPress={() => console.log('Profile Clicked')}>
+            <PaperButton mode="text" onPress={() => navigation.navigate('Profile')}>
               Profile
             </PaperButton>
             <PaperButton
