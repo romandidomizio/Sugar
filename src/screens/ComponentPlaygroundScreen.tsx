@@ -17,9 +17,9 @@ const ComponentPlaygroundScreen: React.FC = () => {
   const [modalVisible, setModalVisible] = React.useState(false);
 
   return (
-    <KeyboardAwareScrollView 
+    <KeyboardAwareScrollView
       style={[
-        styles.container, 
+        styles.container,
         { backgroundColor: theme.colors.background }
       ]}
       contentContainerStyle={styles.contentContainer}
@@ -27,10 +27,10 @@ const ComponentPlaygroundScreen: React.FC = () => {
       enableOnAndroid={true}
       keyboardShouldPersistTaps="handled"
     >
-      <Text 
-        variant="headlineLarge" 
+      <Text
+        variant="headlineLarge"
         style={[
-          styles.title, 
+          styles.title,
           { color: theme.colors.primary }
         ]}
       >
@@ -39,80 +39,80 @@ const ComponentPlaygroundScreen: React.FC = () => {
 
       <Divider />
 
-      <Surface 
-        elevation={1} 
+      <Surface
+        elevation={1}
         style={[
-          styles.navigationSection, 
-          { 
-            backgroundColor: theme.colors.primaryLight + '20', 
-            borderColor: theme.colors.primary 
+          styles.navigationSection,
+          {
+            backgroundColor: theme.colors.primaryLight + '20',
+            borderColor: theme.colors.primary
           }
         ]}
       >
         <Text style={styles.navigationTitle}>Screen Navigation</Text>
         <View style={styles.buttonRow}>
-          <PaperButton 
+          <PaperButton
             variant="primary"
             size="small"
             onPress={() => navigation.navigate('Login')}
           >
             Login
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="secondary"
             size="small"
             onPress={() => navigation.navigate('Register')}
           >
             Register
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="tertiary"
             size="small"
             onPress={() => navigation.navigate('Home')}
           >
             Home
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="tertiary"
             size="small"
-            onPress={() => console.log('Other screens coming soon')}
+            onPress={() => navigation.navigate('Cart')}
           >
-            More
+            Cart
           </PaperButton>
         </View>
       </Surface>
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <Text style={styles.sectionTitle}>Button Variants</Text>
-        
-        <PaperButton 
+
+        <PaperButton
           variant="primary"
           width="full"
           onPress={() => console.log('Primary Button Pressed')}
         >
           Primary Full Width Button
         </PaperButton>
-        
+
         <View style={styles.buttonRow}>
-          <PaperButton 
+          <PaperButton
             variant="secondary"
             size="small"
             onPress={() => console.log('Small Secondary Button Pressed')}
           >
             Small
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="secondary"
             onPress={() => console.log('Default Secondary Button Pressed')}
           >
             Default
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="secondary"
             size="large"
             onPress={() => console.log('Large Secondary Button Pressed')}
@@ -122,22 +122,22 @@ const ComponentPlaygroundScreen: React.FC = () => {
         </View>
 
         <View style={styles.buttonRow}>
-          <PaperButton 
+          <PaperButton
             variant="tertiary"
             size="small"
             onPress={() => console.log('Small Tertiary Button Pressed')}
           >
             Small
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="tertiary"
             onPress={() => console.log('Default Tertiary Button Pressed')}
           >
             Default
           </PaperButton>
-          
-          <PaperButton 
+
+          <PaperButton
             variant="tertiary"
             size="large"
             onPress={() => console.log('Large Tertiary Button Pressed')}
@@ -145,15 +145,15 @@ const ComponentPlaygroundScreen: React.FC = () => {
             Large
           </PaperButton>
         </View>
-        
-        <PaperButton 
+
+        <PaperButton
           variant="danger"
           onPress={() => console.log('Danger Button Pressed')}
         >
           Danger Button
         </PaperButton>
 
-        <PaperButton 
+        <PaperButton
           variant="primary"
           disabled
           onPress={() => console.log('Disabled Button Pressed')}
@@ -164,22 +164,22 @@ const ComponentPlaygroundScreen: React.FC = () => {
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <Text style={styles.sectionTitle}>Input Variants</Text>
-        
-        <PaperInput 
-          label="Standard Input" 
+
+        <PaperInput
+          label="Standard Input"
           placeholder="Enter text"
         />
-        
-        <PaperInput 
-          label="Input with Error" 
+
+        <PaperInput
+          label="Input with Error"
           error="This field is required"
         />
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <Text style={styles.sectionTitle}>Modal Example</Text>
-        
-        <PaperButton 
+
+        <PaperButton
           variant="tertiary"
           size="small"
           onPress={() => setModalVisible(true)}
@@ -190,7 +190,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <Text style={styles.sectionTitle}>Card Example</Text>
-        
+
         <PaperCard
           title="Sample Card"
           subtitle="This is a sample card component"
