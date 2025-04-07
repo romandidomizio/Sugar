@@ -172,13 +172,13 @@ const HomeScreen: React.FC = () => {
         <PaperButton mode="text" onPress={() => navigation.navigate('Community')}>
           Comm
         </PaperButton>
-        <PaperButton mode="text" onPress={() => navigation.navigate('Cart')}>
-          Cart
+        <PaperButton mode="text" onPress={() => navigation.navigate('MyListings')}>
+          Listings
         </PaperButton>
-        <PaperButton mode="text" onPress={() => console.log('post Clicked')}>
+        <PaperButton mode="text" onPress={() => navigation.navigate('Post')}>
           Post
         </PaperButton>
-        <PaperButton mode="text" onPress={() => console.log('messages Clicked')}>
+        <PaperButton mode="text" onPress={() => navigation.navigate('Messages')}>
           messages
         </PaperButton>
         <PaperButton mode="text" onPress={() => console.log('marketplace Clicked')}>

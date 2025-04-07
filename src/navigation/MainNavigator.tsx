@@ -9,6 +9,9 @@ import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
 import CommunityScreen from '../screens/CommunityScreen'; // Import the CommunityScreen
+import PostScreen from '../screens/PostScreen'; // Import the postScreen
+import MessagesScreen from '../screens/MessagesScreen';
+import MyListingsScreen from '../screens/MyListingsScreen';
 import BottomTabNavigator from './BottomTabNavigator';
 
 import { SugarTheme } from '../theme/SugarTheme';
@@ -79,6 +82,20 @@ const MainNavigator = () => {
           name="Community"
           component={CommunityScreen}
         />
+                <Stack.Screen
+                  name="Post"
+                  component={PostScreen}
+                />
+
+                <Stack.Screen
+                  name="Messages"
+                  component={MessagesScreen}
+                />
+
+            <Stack.Screen
+              name="MyListings"
+              component={MyListingsScreen}
+            />
       </Stack.Navigator>
     </NavigationContainer>
   );
