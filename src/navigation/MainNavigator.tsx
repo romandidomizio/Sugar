@@ -8,7 +8,8 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
-import BottomTabNavigator from './BottomTabNavigator'; // import it
+import CommunityScreen from '../screens/CommunityScreen'; // Import the CommunityScreen
+import BottomTabNavigator from './BottomTabNavigator';
 
 import { SugarTheme } from '../theme/SugarTheme';
 
@@ -74,8 +75,10 @@ const MainNavigator = () => {
           name="Cart"
           component={CartScreen}
         />
-
-
+        <Stack.Screen
+          name="Community"
+          component={CommunityScreen}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

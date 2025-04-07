@@ -1,3 +1,4 @@
+/* CartScreen.tsx */
 import React from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { useTheme, Text, Divider, IconButton, Surface } from 'react-native-paper';

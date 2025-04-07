@@ -169,7 +169,7 @@ const HomeScreen: React.FC = () => {
 
       {/* Bottom Navigation Bar */}
       <View style={styles.footerContainer}>
-        <PaperButton mode="text" onPress={() => console.log('comm Clicked')}>
+        <PaperButton mode="text" onPress={() => navigation.navigate('Community')}>
           Comm
         </PaperButton>
         <PaperButton mode="text" onPress={() => navigation.navigate('Cart')}>
