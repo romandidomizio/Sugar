@@ -33,8 +33,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gif: {
-    width: 1000,
-    height: 1000,
+    width: 200,
+    height: 200,
   },
 });
 
