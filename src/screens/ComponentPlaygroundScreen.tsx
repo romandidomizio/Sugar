@@ -54,6 +54,22 @@ const ComponentPlaygroundScreen: React.FC = () => {
           <PaperButton
             variant="primary"
             size="small"
+            onPress={() => navigation.navigate('Loading')}
+          >
+            Loading
+          </PaperButton>
+
+          <PaperButton
+            variant="primary"
+            size="small"
+            onPress={() => navigation.navigate('Welcome')}
+          >
+            Welcome
+          </PaperButton>
+
+          <PaperButton
+            variant="primary"
+            size="small"
             onPress={() => navigation.navigate('Login')}
           >
             Login

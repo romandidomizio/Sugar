@@ -3,6 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Appbar, useTheme } from 'react-native-paper';
 
+import LoadingScreen from '../screens/LoadingScreen';
+import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -10,8 +12,8 @@ import CartScreen from '../screens/CartScreen';
 import NotifsScreen from '../screens/NotifsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
-import CommunityScreen from '../screens/CommunityScreen'; // Import the CommunityScreen
-import PostScreen from '../screens/PostScreen'; // Import the postScreen
+import CommunityScreen from '../screens/CommunityScreen';
+import PostScreen from '../screens/PostScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -63,6 +65,14 @@ const MainNavigator = () => {
         <Stack.Screen
           name="ComponentPlayground"
           component={ComponentPlaygroundScreen}
+        />
+        <Stack.Screen
+          name="Loading"
+          component={LoadingScreen}
+        />
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
         />
         <Stack.Screen
           name="Login"
