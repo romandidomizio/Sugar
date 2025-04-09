@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { Formik } from 'formik';
@@ -64,11 +64,9 @@ const RegisterScreen: React.FC = () => {
   };
 
   return (
-    <View 
-      style={[
-        styles.container, 
-        { backgroundColor: theme.colors.background }
-      ]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
     >
       <View style={styles.content}>
         <Text 
@@ -167,7 +165,7 @@ const RegisterScreen: React.FC = () => {
           onConfirm={handleErrorModalDismiss}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
