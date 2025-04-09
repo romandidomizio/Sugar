@@ -58,14 +58,14 @@ const PaperButton: React.FC<SugarButtonProps> = ({
           ...baseStyle,
           backgroundColor: theme.colors.secondary,
           borderWidth: 1,
-          borderColor: theme.colors.primaryLight,
+          borderColor: theme.colors.primaryDark,
         };
       case 'tertiary':
         return {
           ...baseStyle,
           backgroundColor: 'transparent',
           borderWidth: 1,
-          borderColor: theme.colors.primaryLight,
+          borderColor: theme.colors.primary,
         };
       case 'danger':
         return {
@@ -103,9 +103,9 @@ const PaperButton: React.FC<SugarButtonProps> = ({
       case 'primary':
         return theme.colors.surface;
       case 'secondary':
-        return theme.colors.primary;
+        return theme.colors.primaryDark;
       case 'tertiary':
-        return theme.colors.primaryLight;
+        return theme.colors.primary;
       case 'danger':
         return theme.colors.surface;
       default:
@@ -126,7 +126,7 @@ const PaperButton: React.FC<SugarButtonProps> = ({
         };
       case 'tertiary':
         return { 
-          backgroundColor: `${theme.colors.primaryLight}20`, // 20% opacity
+          backgroundColor: `${theme.colors.primaryLight}10`, // 20% opacity
           borderColor: theme.colors.primary 
         };
       case 'danger':
