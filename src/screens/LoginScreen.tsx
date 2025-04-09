@@ -32,7 +32,7 @@ const LoginScreen: React.FC = () => {
     const success = await login(values.username, values.password);
     
     if (success) {
-      navigation.navigate('Home');
+      navigation.navigate('BottomTab');
     } else {
       setErrorModalVisible(true);
     }

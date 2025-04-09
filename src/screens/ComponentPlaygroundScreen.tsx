@@ -22,7 +22,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
         styles.container,
         { backgroundColor: theme.colors.background }
       ]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[styles.contentContainer, { paddingTop: 50 }]}
       extraScrollHeight={50}
       enableOnAndroid={true}
       keyboardShouldPersistTaps="handled"
@@ -52,35 +52,39 @@ const ComponentPlaygroundScreen: React.FC = () => {
         <Text style={styles.navigationTitle}>Screen Navigation</Text>
         <View style={styles.buttonRow}>
           <PaperButton
-            variant="primary"
-            size="small"
+            mode="contained"
             onPress={() => navigation.navigate('Login')}
+            style={styles.button}
           >
             Login
           </PaperButton>
-
           <PaperButton
-            variant="secondary"
-            size="small"
+            mode="contained"
             onPress={() => navigation.navigate('Register')}
+            style={styles.button}
           >
             Register
           </PaperButton>
-
           <PaperButton
-            variant="tertiary"
-            size="small"
-            onPress={() => navigation.navigate('Home')}
-          >
-            Home
-          </PaperButton>
-
-          <PaperButton
-            variant="tertiary"
-            size="small"
+            mode="contained"
             onPress={() => navigation.navigate('Cart')}
+            style={styles.button}
           >
             Cart
+          </PaperButton>
+          <PaperButton
+            mode="contained"
+            onPress={() => navigation.navigate('Notifs')}
+            style={styles.button}
+          >
+            Notifs
+          </PaperButton>
+          <PaperButton
+            mode="contained"
+            onPress={() => navigation.navigate('Profile')}
+            style={styles.button}
+          >
+            Profile
           </PaperButton>
         </View>
       </Surface>
@@ -255,6 +259,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 8,
+  },
+  button: {
+    margin: 4,
   },
 });
 
