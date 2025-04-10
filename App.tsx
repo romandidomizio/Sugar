@@ -12,10 +12,8 @@ import MainNavigator from './src/navigation/MainNavigator';
 export default function App() {
   const [isReady, setIsReady] = useState(false);
 
-  // Show loading animation before rendering the main app
   useEffect(() => {
     const init = async () => {
-      // Simulate loading async resources (fonts, auth, etc.)
       setTimeout(() => setIsReady(true), 3000);
     };
 
@@ -24,7 +22,6 @@ export default function App() {
 
   if (!isReady) return null;
 
-  // Main app once loading is complete
   return (
     <SafeAreaProvider>
       <PaperProvider theme={SugarTheme}>
@@ -38,16 +35,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#2E8B57',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingGif: {
-    width: 200,
-    height: 200,
-  },
-});
