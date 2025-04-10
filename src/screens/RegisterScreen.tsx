@@ -52,7 +52,7 @@ const RegisterScreen: React.FC = () => {
     );
     
     if (success) {
-      navigation.navigate('Home');
+      navigation.navigate('BottomTab', { screen: 'Home' });
     } else {
       setErrorModalVisible(true);
     }
