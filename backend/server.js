@@ -7,6 +7,9 @@ const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
 const mongoose = require('mongoose');
 
+// Import Messaging Routes
+const messagingRoutes = require('./routes/messages');
+
 const app = express();
 
 // Connect to Database
@@ -61,6 +64,7 @@ const userRoutes = require('./routes/userRoutes');
 const foodItemsRoutes = require('./routes/foodItems');
 app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
+app.use('/api/messages', messagingRoutes);
 
 // Apply authMiddleware selectively to routes that require authentication
 app.use('/api/users/profile', authMiddleware);
