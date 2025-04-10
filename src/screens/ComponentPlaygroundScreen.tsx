@@ -53,11 +53,28 @@ const ComponentPlaygroundScreen: React.FC = () => {
         <View style={styles.buttonRow}>
           <PaperButton
             mode="contained"
+            onPress={() => navigation.navigate('Loading')}
+            style={styles.button}
+          >
+            Loading
+          </PaperButton>
+
+          <PaperButton
+            mode="contained"
+            onPress={() => navigation.navigate('Welcome')}
+            style={styles.button}
+          >
+            Welcome
+          </PaperButton>
+
+          <PaperButton
+            mode="contained"
             onPress={() => navigation.navigate('Login')}
             style={styles.button}
           >
             Login
           </PaperButton>
+
           <PaperButton
             mode="contained"
             onPress={() => navigation.navigate('Register')}
@@ -65,6 +82,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
           >
             Register
           </PaperButton>
+          
           <PaperButton
             mode="contained"
             onPress={() => navigation.navigate('Cart')}
@@ -72,6 +90,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
           >
             Cart
           </PaperButton>
+          
           <PaperButton
             mode="contained"
             onPress={() => navigation.navigate('Notifs')}
@@ -79,6 +98,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
           >
             Notifs
           </PaperButton>
+          
           <PaperButton
             mode="contained"
             onPress={() => navigation.navigate('Profile')}
@@ -86,6 +106,7 @@ const ComponentPlaygroundScreen: React.FC = () => {
           >
             Profile
           </PaperButton>
+        
         </View>
       </Surface>
 
