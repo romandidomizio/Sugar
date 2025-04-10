@@ -1,4 +1,4 @@
-/* LoadingScreen.tsx */
+/* LoadingScreen.tsx: Smart loading screen */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -7,10 +7,12 @@ const LoadingScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
+    console.log('[LoadingScreen] mounted');
     const timeout = setTimeout(() => {
-      navigation.navigate('Welcome');
-    }, 3000); // 3-second loading
-
+      console.log('[LoadingScreen] navigating to Login');
+      navigation.navigate('Login'); //change to "Welcome" after
+    }, 3000);
+  
     return () => clearTimeout(timeout);
   }, []);
 

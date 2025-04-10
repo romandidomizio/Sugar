@@ -22,18 +22,7 @@ export default function App() {
     init();
   }, []);
 
-  // Display loading screen with animated logo
-  if (!isReady) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Image
-          source={require('./assets/sugar_logo.gif')}
-          style={styles.loadingGif}
-          resizeMode="contain"
-        />
-      </View>
-    );
-  }
+  if (!isReady) return null;
 
   // Main app once loading is complete
   return (

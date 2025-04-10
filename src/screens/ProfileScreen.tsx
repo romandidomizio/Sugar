@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme, Text, Divider } from 'react-native-paper';
+import { PaperButton } from '../components/paper';
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen: React.FC = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -25,6 +28,13 @@ const ProfileScreen: React.FC = () => {
         <Text variant="bodyLarge" style={styles.placeholderText}>
           profile coming soon!
         </Text>
+        <PaperButton
+          mode="contained"
+          onPress={() => navigation.navigate('Login')}
+          style={styles.logoutButton}
+        >
+          Logout
+        </PaperButton>
       </View>
     </View>
   );
@@ -53,6 +63,9 @@ const styles = StyleSheet.create({
   placeholderText: {
     textAlign: 'center',
     marginVertical: 16,
+  },
+  logoutButton: {
+    // Add styles for the logout button here
   },
 });
 

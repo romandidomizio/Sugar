@@ -58,7 +58,9 @@ const authMiddleware = require('./middleware/authMiddleware');
 
 // Routes
 const userRoutes = require('./routes/userRoutes');
+const foodItemsRoutes = require('./routes/foodItems');
 app.use('/api/users', userRoutes);
+app.use('/api', foodItemsRoutes);
 
 // Apply authMiddleware selectively to routes that require authentication
 app.use('/api/users/profile', authMiddleware);
