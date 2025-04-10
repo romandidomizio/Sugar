@@ -1,18 +1,15 @@
 /* LoadingScreen.tsx */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
-const LoadingScreen = () => {
-  const navigation = useNavigation();
-
+const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
-      navigation.navigate('Welcome');
+      onFinish();
     }, 3000); // 3-second loading
 
     return () => clearTimeout(timeout);
-  }, []);
+  }, [onFinish]);
 
   return (
     <View style={styles.container}>
