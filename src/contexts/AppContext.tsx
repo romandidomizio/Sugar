@@ -106,6 +106,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
           error: null
         }
       };
+  // Add this case to your appReducer in AppContext.tsx
+  case 'UPDATE_PROFILE_PHOTO':
+    return {
+      ...state,
+      auth: {
+        ...state.auth,
+        user: state.auth.user ? { ...state.auth.user, photo: action.payload } : null
+      }
+    };
     default:
       return state;
   }
@@ -119,6 +128,7 @@ const AppContext = createContext<{
   register: (username: string, password: string, name?: string, email?: string, phone?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
+    uploadProfilePhoto: (photoUri: string) => Promise<boolean>;
   clearError: () => void;
 }>({
   state: initialState,
@@ -127,6 +137,7 @@ const AppContext = createContext<{
   register: async () => false,
   logout: async () => {},
   updateProfile: async () => false,
+    uploadProfilePhoto: async () => false,
   clearError: () => {}
 });
 
@@ -220,6 +231,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // Add this method to your AppProvider component
+  const uploadProfilePhoto = async (photoUri: string) => {
+    try {
+      const response = await AuthService.uploadProfilePhoto(photoUri);
+      dispatch({
+        type: 'UPDATE_PROFILE_PHOTO',
+        payload: response.photo
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Photo upload failed', error);
+      return false;
+    }
+  };
+
   const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
@@ -233,6 +259,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         register, 
         logout, 
         updateProfile,
+        uploadProfilePhoto,
         clearError
       }}
     >

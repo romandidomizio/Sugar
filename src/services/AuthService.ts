@@ -16,6 +16,45 @@ interface RegisterCredentials extends LoginCredentials {
 }
 
 class AuthService {
+    // Add this method to your AuthService class
+    async uploadProfilePhoto(photoUri: string) {
+      const token = await AsyncStorage.getItem('userToken');
+
+      if (!token) {
+        console.error('[AuthService] No authentication token for photo upload');
+        throw new Error('No authentication token');
+      }
+
+      // Create form data
+      const formData = new FormData();
+
+      // Get the file name from the URI
+      const uriParts = photoUri.split('/');
+      const fileName = uriParts[uriParts.length - 1];
+
+      // Append the image to form data
+      formData.append('photo', {
+        uri: photoUri,
+        name: fileName,
+        type: 'image/jpeg', // You might want to detect this dynamically
+      } as any);
+
+      try {
+        const response = await axios.post(`${API_URL}/upload-photo`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          }
+        });
+        console.log('[AuthService] Photo uploaded successfully');
+        return response.data;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || 'Photo upload failed';
+        console.error(`[AuthService] Photo upload failed: ${errorMessage}`);
+        throw errorMessage;
+      }
+    }
+
   async login(credentials: LoginCredentials) {
     try {
       console.log(`[AuthService] Attempting login for user: ${credentials.username}`);

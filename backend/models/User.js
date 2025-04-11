@@ -33,6 +33,10 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     match: [/^\+?[1-9]\d{1,14}$/, 'Please use a valid phone number']
   },
+    photo: {
+      type: String,  // URL to the stored image
+      default: ''
+    },
   role: {
     type: String,
     enum: ['user', 'seller', 'admin'],

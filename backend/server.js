@@ -66,6 +66,9 @@ app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
 app.use('/api/messages', messagingRoutes);
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Apply authMiddleware selectively to routes that require authentication
 app.use('/api/users/profile', authMiddleware);
 
