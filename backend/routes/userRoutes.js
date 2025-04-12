@@ -4,52 +4,27 @@ const router = express.Router();
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const { validateRegistration, validateLogin } = require('../utils/validation');
-const multer = require('multer');
 const path = require('path');
-
-// Configure storage for multer
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/profile-photos/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
-
-// File filter for images
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Not an image! Please upload only images.'), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 1024 * 1024 * 5 // 5MB max size
-  },
-  fileFilter: fileFilter
-});
-
-// Create uploads directory if it doesn't exist
 const fs = require('fs');
-const dir = './uploads/profile-photos';
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir, { recursive: true });
-}
 
-// Add this new route for photo upload
+// Import cloudinary configuration
+const { upload } = require('../config/cloudinary');
+
+// Add this new route for photo upload using Cloudinary
 router.post('/upload-photo', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
+    // Cloudinary automatically uploads the file
+    // The file info is available in req.file
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    const photoUrl = `/uploads/profile-photos/${req.file.filename}`;
+    console.log('File uploaded to Cloudinary:', req.file);
 
+    // Get the Cloudinary URL
+    const photoUrl = req.file.path;
+
+    // Update user profile
     const user = await User.findOneAndUpdate(
       { username: req.user.username },
       { photo: photoUrl },
@@ -62,6 +37,7 @@ router.post('/upload-photo', authMiddleware, upload.single('photo'), async (req,
 
     res.json({ photo: photoUrl, user });
   } catch (error) {
+    console.error('Photo upload error:', error);
     res.status(500).json({ message: 'Error uploading photo', error: error.message });
   }
 });

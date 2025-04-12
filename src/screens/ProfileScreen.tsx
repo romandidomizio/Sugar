@@ -54,19 +54,40 @@ const ProfileScreen: React.FC = () => {
   const uploadUserPhoto = async (photoUri: string) => {
     setUploading(true);
     try {
-      const success = await uploadProfilePhoto(photoUri);
-      if (success) {
+      console.log('Uploading photo from:', photoUri);
+      const response = await uploadProfilePhoto(photoUri);
+      console.log('Upload response:', response);
+
+      if (response && response.success) {
         Alert.alert('Success', 'Profile photo updated successfully');
+        // If needed, update local state to show the new image
+        // You might need to refresh user data here
       } else {
         Alert.alert('Error', 'Failed to update profile photo');
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      Alert.alert('Error', 'Failed to upload photo');
+      Alert.alert('Error', 'Failed to upload photo: ' + (error.toString ? error.toString() : 'Unknown error'));
     } finally {
       setUploading(false);
     }
   };
+//   const uploadUserPhoto = async (photoUri: string) => {
+//     setUploading(true);
+//     try {
+//       const success = await uploadProfilePhoto(photoUri);
+//       if (success) {
+//         Alert.alert('Success', 'Profile photo updated successfully');
+//       } else {
+//         Alert.alert('Error', 'Failed to update profile photo');
+//       }
+//     } catch (error) {
+//       console.error('Error uploading photo:', error);
+//       Alert.alert('Error', 'Failed to upload photo');
+//     } finally {
+//       setUploading(false);
+//     }
+//   };
 
   const handleLogout = async () => {
     await logout();
@@ -97,6 +118,23 @@ const ProfileScreen: React.FC = () => {
 
   // Show user profile
   return (
+        <View style={styles.container}>
+          <TouchableOpacity onPress={pickImage} disabled={uploading}>
+            <Avatar.Image
+              size={120}
+              source={
+                user?.photo
+                  ? { uri: user.photo }
+                  : require('../assets/default-avatar.png')
+              }
+            />
+            {uploading && <ActivityIndicator size="small" color={theme.colors.primary} />}
+          </TouchableOpacity>
+
+          <Text style={styles.username}>{user?.username || 'User'}</Text>
+
+          {/* Rest of your profile screen */}
+        </View>
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.headerContainer}>
         <Text
