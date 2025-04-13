@@ -171,6 +171,11 @@
 
 // export default MainNavigator;
 
+
+
+//THIS IS WHAT WORKS FOR THE MESSAGING
+
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, StackScreenProps } from '@react-navigation/stack'; // Import StackScreenProps
@@ -190,6 +195,7 @@ import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import PostScreen from '../screens/PostScreen';
 import MessagesScreen from '../screens/MessagesScreen';
+import SelectRecipientScreen from '../screens/SelectRecipientScreen'; // <-- 1. Import SelectRecipientScreen
 import MyListingsScreen from '../screens/MyListingsScreen';
 import ChatScreen from '../screens/ChatScreen'; // <-- 1. Import ChatScreen
 import { SugarTheme } from '../theme/SugarTheme';
@@ -209,6 +215,7 @@ export type RootStackParamList = {
     recipientUsername: string;
     recipientId: string;
   };
+  SelectRecipient: undefined;
   // Add other stack screens if they have params
 };
 
@@ -328,6 +335,14 @@ const MainNavigator = () => {
              options={{ headerShown: false }} // <-- 4. Hide Stack header because ChatScreen has its own Appbar
          />
 
+         {/* --- NEW: Select Recipient Screen --- */}
+        <Stack.Screen
+          name="SelectRecipient"
+          component={SelectRecipientScreen}
+          options={{ headerShown: false }} // SelectRecipientScreen has its own header
+        />
+        {/* --- END NEW --- */}
+
         {/* Screens that DO use the CustomNavigationBar */}
         <Stack.Screen
           name="BottomTab"
@@ -409,3 +424,233 @@ const MainBottomTabNavigator = () => {
 };
 
 export default MainNavigator;
+
+
+
+
+
+
+
+
+
+
+
+// import React from 'react';
+// import { NavigationContainer } from '@react-navigation/native';
+// import { createStackNavigator, StackScreenProps } from '@react-navigation/stack';
+// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// import { Appbar, useTheme } from 'react-native-paper';
+
+// // --- Screen Imports ---
+// import LoadingScreen from '../screens/LoadingScreen';
+// import WelcomeScreen from '../screens/WelcomeScreen';
+// import LoginScreen from '../screens/LoginScreen';
+// import RegisterScreen from '../screens/RegisterScreen';
+// import HomeScreen from '../screens/HomeScreen';
+// import CartScreen from '../screens/CartScreen';
+// import NotifsScreen from '../screens/NotifsScreen';
+// import ProfileScreen from '../screens/ProfileScreen';
+// import ComponentPlaygroundScreen from '../screens/ComponentPlaygroundScreen';
+// import CommunityScreen from '../screens/CommunityScreen';
+// import PostScreen from '../screens/PostScreen';
+// import MessagesScreen from '../screens/MessagesScreen';
+// import MyListingsScreen from '../screens/MyListingsScreen';
+// import ChatScreen from '../screens/ChatScreen';
+// import SelectRecipientScreen from '../screens/SelectRecipientScreen'; // <-- 1. Import SelectRecipientScreen
+// import { SugarTheme } from '../theme/SugarTheme';
+
+// // --- Define Param List for Type Safety ---
+// export type RootStackParamList = {
+//   Loading: undefined;
+//   Welcome: undefined;
+//   Login: undefined;
+//   Register: undefined;
+//   ComponentPlayground: undefined;
+//   BottomTab: undefined;
+//   Cart: undefined;
+//   Notifs: undefined;
+//   Profile: undefined;
+//   Chat: {
+//     recipientUsername: string;
+//     recipientId: string;
+//   };
+//   SelectRecipient: undefined; // <-- 2. Add SelectRecipient here
+//   // Add other stack screens if they have params
+// };
+
+// // --- Define Type for Screens needing navigation/route props ---
+// export type ChatScreenProps = StackScreenProps<RootStackParamList, 'Chat'>;
+// // Define SelectRecipientScreenProps if needed (e.g., if it receives params)
+// // export type SelectRecipientScreenProps = StackScreenProps<RootStackParamList, 'SelectRecipient'>;
+
+
+// // --- Create Navigators ---
+// const Stack = createStackNavigator<RootStackParamList>();
+// const Tab = createBottomTabNavigator();
+
+// // --- Custom Navigation Bar (Keep as is) ---
+// const CustomNavigationBar = ({ navigation, back, route }: any) => {
+//     // ... (keep existing CustomNavigationBar function)
+//      const theme = useTheme();
+//      const routeName = route?.name || 'Sugar';
+
+//      let title = routeName;
+//      if (routeName === 'BottomTab') {
+//          title = 'Sugar';
+//      } else if (route.params && 'recipientUsername' in route.params) {
+//          title = route.params.recipientUsername;
+//      }
+
+//      return (
+//        <Appbar.Header
+//          mode="small"
+//          style={{ backgroundColor: theme.colors.primary }}
+//        >
+//          {back ? (
+//            <Appbar.BackAction
+//              onPress={() => navigation.goBack()}
+//              iconColor={theme.colors.surface}
+//            />
+//          ) : null}
+//          <Appbar.Content
+//            title={title}
+//            titleStyle={{ color: theme.colors.surface }}
+//          />
+//          {routeName !== 'Chat' && routeName !== 'SelectRecipient' && ( // <-- Optionally hide icons on SelectRecipient too
+//              <>
+//                  <Appbar.Action icon="cart" onPress={() => navigation.navigate('Cart')} />
+//                  <Appbar.Action icon="bell" onPress={() => navigation.navigate('Notifs')} />
+//                  <Appbar.Action icon="account" onPress={() => navigation.navigate('Profile')} />
+//            </>
+//            )}
+//        </Appbar.Header>
+//      );
+// };
+
+
+// // --- Main Stack Navigator ---
+// const MainNavigator = () => {
+//   return (
+//     <NavigationContainer theme={SugarTheme}>
+//       <Stack.Navigator
+//         initialRouteName="ComponentPlayground"
+//       >
+//         {/* Screens without main CustomNavigationBar */}
+//         <Stack.Screen
+//           name="ComponentPlayground"
+//           component={ComponentPlaygroundScreen}
+//           options={{ headerShown: false }}
+//         />
+//         <Stack.Screen
+//           name="Loading"
+//           component={LoadingScreen}
+//           options={{ headerShown: false }}
+//         />
+//         <Stack.Screen
+//           name="Welcome"
+//           component={WelcomeScreen}
+//           options={{ headerShown: false }}
+//         />
+//         <Stack.Screen
+//           name="Login"
+//           component={LoginScreen}
+//           options={{ headerShown: false }}
+//         />
+//         <Stack.Screen
+//           name="Register"
+//           component={RegisterScreen}
+//           options={{ headerShown: false }}
+//         />
+
+//         <Stack.Screen
+//             name="Chat"
+//             component={ChatScreen}
+//             options={{ headerShown: false }}
+//         />
+
+//         {/* --- 3. Add SelectRecipientScreen Screen --- */}
+//         <Stack.Screen
+//             name="SelectRecipient"
+//             component={SelectRecipientScreen}
+//             // Option 1: Basic header with back button
+//             options={{ title: 'New Message' }}
+//             // Option 2: Use CustomNavigationBar (if appropriate for this screen)
+//             // options={({ navigation, route }) => ({
+//             //    header: (props) => (
+//             //        <CustomNavigationBar {...props} navigation={navigation} route={route} />
+//             //    ),
+//             // })}
+//             // Option 3: Hide header if SelectRecipientScreen has its own header
+//             // options={{ headerShown: false }}
+//          />
+
+//         {/* Screens using CustomNavigationBar */}
+//         <Stack.Screen
+//           name="BottomTab"
+//           component={MainBottomTabNavigator}
+//             options={({ navigation, route }) => ({
+//               header: (props) => (
+//                  <CustomNavigationBar {...props} navigation={navigation} route={route} />
+//                ),
+//             })}
+//         />
+//         <Stack.Screen
+//           name="Cart"
+//           component={CartScreen}
+//           options={({ navigation, route }) => ({
+//             header: (props) => (
+//               <CustomNavigationBar {...props} navigation={navigation} route={route} />
+//             ),
+//           })}
+//         />
+//         <Stack.Screen
+//           name="Notifs"
+//           component={NotifsScreen}
+//           options={({ navigation, route }) => ({
+//             header: (props) => (
+//               <CustomNavigationBar {...props} navigation={navigation} route={route} />
+//             ),
+//           })}
+//         />
+//         <Stack.Screen
+//           name="Profile"
+//           component={ProfileScreen}
+//           options={({ navigation, route }) => ({
+//             header: (props) => (
+//               <CustomNavigationBar {...props} navigation={navigation} route={route} />
+//             ),
+//           })}
+//         />
+//       </Stack.Navigator>
+//     </NavigationContainer>
+//   );
+// };
+
+// // --- Bottom Tab Navigator (Keep as is) ---
+// const MainBottomTabNavigator = () => {
+//     // ... (keep existing MainBottomTabNavigator function)
+//      return (
+//        <Tab.Navigator
+//          screenOptions={({ route }) => ({
+//            tabBarIcon: ({ color, size }) => {
+//              let iconName = 'help-circle';
+//              if (route.name === 'Home') iconName = 'home';
+//              else if (route.name === 'Community') iconName = 'account-group';
+//              else if (route.name === 'My Listings') iconName = 'clipboard-list';
+//              else if (route.name === 'Post') iconName = 'plus-circle';
+//              else if (route.name === 'Messages') iconName = 'message';
+//              return <Appbar.Action icon={iconName} color={color} size={size} style={{ margin: 0 }} />;
+//            },
+//            headerShown: false,
+//          })}
+//        >
+//          <Tab.Screen name="Home" component={HomeScreen} />
+//          <Tab.Screen name="Community" component={CommunityScreen} />
+//          <Tab.Screen name="Post" component={PostScreen} />
+//          <Tab.Screen name="My Listings" component={MyListingsScreen} />
+//          <Tab.Screen name="Messages" component={MessagesScreen} />
+//        </Tab.Navigator>
+//      );
+// };
+
+// export default MainNavigator;
