@@ -113,4 +113,26 @@ router.get('/protected', authMiddleware, (req, res) => {
   res.json({ message: 'This is a protected route', user: req.user });
 });
 
+router.get('/search', authMiddleware, async (req, res) => {
+  const currentUsername = req.user.username; // Get username from JWT
+  const searchQuery = req.query.q || ''; // Get search query from query params (?q=...)
+
+  try {
+    // Basic search: find users whose username contains the search query (case-insensitive)
+    // Exclude the current user from the results
+    // Limit results for performance (e.g., 20 users)
+    const users = await User.find({
+      username: { $regex: searchQuery, $options: 'i' }, // Case-insensitive regex search
+      username: { $ne: currentUsername } // Exclude the current user
+    })
+    .select('username _id') // Only select username and ID
+    .limit(20); // Limit the number of results
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({ message: 'Error searching users', error: error.message });
+  }
+});
+
 module.exports = router;

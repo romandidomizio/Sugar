@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Message = require('../models/Message');
 const User = require('../models/User'); // Import the User model
+const authMiddleware = require('../middleware/authMiddleware'); // Assuming you have an auth middleware
 
 // Route 1: Send a message
 router.get('/', (req, res) => {
@@ -109,5 +110,57 @@ router.patch('/mark-read', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+// Get all conversations for a user
+router.get('/conversations', authMiddleware, async (req, res) => {
+    try {
+        const loggedInUsername = req.user.username; // Get username from the decoded JWT
+
+        // Find the logged-in user's ID based on the username
+        const loggedInUser = await User.findOne({ username: loggedInUsername });
+        if (!loggedInUser) {
+            return res.status(404).json({ message: 'Logged-in user not found' });
+        }
+        const loggedInUserId = loggedInUser._id;
+
+        // Find all messages where the logged-in user is either the sender or the recipient
+        const messages = await Message.find({
+            $or: [
+                { sender: loggedInUserId },
+                { recipient: loggedInUserId }
+            ]
+        })
+        .populate('sender', 'username')
+        .populate('recipient', 'username')
+        .sort({ timestamp: -1 }); // Sort by most recent message
+
+        // Process the messages to get unique conversations and the last message in each
+        const conversationsMap = new Map();
+
+        messages.forEach(message => {
+            const otherUser = message.sender._id.toString() === loggedInUserId.toString()
+                ? message.recipient
+                : message.sender;
+            const conversationId = [loggedInUserId, otherUser._id].sort().join('-');
+
+            if (!conversationsMap.has(conversationId) || conversationsMap.get(conversationId).timestamp < message.timestamp) {
+                conversationsMap.set(conversationId, {
+                    otherUser,
+                    lastMessage: message.content,
+                    timestamp: message.timestamp
+                });
+            }
+        });
+
+        const conversations = Array.from(conversationsMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+
+        res.status(200).json(conversations);
+    } catch (error) {
+        console.error("Error fetching conversations:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 
 module.exports = router;
