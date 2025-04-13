@@ -18,6 +18,7 @@ import PostScreen from '../screens/PostScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
 import { SugarTheme } from '../theme/SugarTheme';
+import { TouchableOpacity, Image } from 'react-native';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,10 +40,17 @@ const CustomNavigationBar = ({ navigation, back, route }: any) => {
           iconColor={theme.colors.surface}
         />
       ) : null}
-      <Appbar.Content
+      {/* <Appbar.Content
         title={routeName === 'BottomTab' ? 'Sugar Logo' : routeName}
         titleStyle={{ color: theme.colors.surface }}
-      />
+      /> */}
+      <TouchableOpacity onPress={() => navigation.navigate('BottomTab', {screen: 'Home',})}>
+        <Image
+          source={require('../../assets/sugar.png')}
+          style={{ width: 100, height: 42, resizeMode: 'contain'}}
+        />
+      </TouchableOpacity>
+      <Appbar.Content title="" />
       <Appbar.Action icon="cart" onPress={() => navigation.navigate('Cart')} />
       <Appbar.Action icon="bell" onPress={() => navigation.navigate('Notifs')} />
       <Appbar.Action icon="account" onPress={() => navigation.navigate('Profile')} />
