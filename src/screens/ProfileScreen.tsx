@@ -1,3 +1,225 @@
+//fa=iled claude
+// import React, { useEffect, useState } from 'react';
+// import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+// import { useTheme, Text, Divider, Avatar } from 'react-native-paper';
+// import { PaperButton } from '../components/paper';
+// import { useNavigation } from '@react-navigation/native';
+// import { useAppContext } from '../contexts/AppContext';
+//
+// const ProfileScreen: React.FC = () => {
+//   const theme = useTheme();
+//   const navigation = useNavigation();
+//   const { state, logout } = useAppContext();
+//   const { user, isAuthenticated } = state.auth;
+// // Add to the imports
+// import { useState, useEffect } from 'react';
+// import CartService from '../services/CartService';
+//
+//   const handleLogout = async () => {
+//     await logout();
+//     navigation.navigate('Login');
+//   };
+//
+//   // If not authenticated
+//   if (!isAuthenticated || !user) {
+//     return (
+//       <View style={[styles.container, styles.centerContent]}>
+//         <Text variant="bodyLarge" style={{ marginBottom: 16 }}>
+//           Please log in to view your profile
+//         </Text>
+//         <PaperButton
+//           mode="contained"
+//           onPress={() => navigation.navigate('Login')}
+//         >
+//           Go to Login
+//         </PaperButton>
+//       </View>
+//     );
+//   }
+//
+// // Add inside the ProfileScreen component
+// const [orders, setOrders] = useState([]);
+// const [loadingOrders, setLoadingOrders] = useState(false);
+//
+// useEffect(() => {
+//   if (isAuthenticated) {
+//     fetchOrderHistory();
+//   }
+// }, [isAuthenticated]);
+//
+// const fetchOrderHistory = async () => {
+//   try {
+//     setLoadingOrders(true);
+//     const orderHistory = await CartService.getOrderHistory();
+//     setOrders(orderHistory);
+//   } catch (error) {
+//     console.error('Failed to fetch orders:', error);
+//   } finally {
+//     setLoadingOrders(false);
+//   }
+// };
+//
+//   // Show user profile and order history
+//   return (
+//     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+//       <View style={styles.headerContainer}>
+//         <Text
+//           variant="headlineLarge"
+//           style={[styles.title, { color: theme.colors.primary }]}
+//         >
+//           Profile
+//         </Text>
+//       </View>
+//
+//       <Divider />
+//
+//       <View style={styles.contentContainer}>
+//         <View style={styles.avatarContainer}>
+//           <Avatar.Text
+//             size={80}
+//             label={user.name ? user.name.charAt(0).toUpperCase() : '?'}
+//             backgroundColor={theme.colors.primary}
+//           />
+//         </View>
+//
+//         <View style={styles.infoSection}>
+//           <Text variant="headlineMedium" style={{ color: theme.colors.primary, marginBottom: 16 }}>
+//             {user.name}
+//           </Text>
+//
+//           <View style={styles.infoRow}>
+//             <Text variant="titleMedium" style={styles.infoLabel}>Username:</Text>
+//             <Text variant="bodyLarge">{user.username}</Text>
+//           </View>
+//
+//           <View style={styles.infoRow}>
+//             <Text variant="titleMedium" style={styles.infoLabel}>Email:</Text>
+//             <Text variant="bodyLarge">{user.email}</Text>
+//           </View>
+//
+//           <View style={styles.infoRow}>
+//             <Text variant="titleMedium" style={styles.infoLabel}>Phone:</Text>
+//             <Text variant="bodyLarge">{user.phone || 'Not provided'}</Text>
+//           </View>
+//
+//           <View style={styles.infoRow}>
+//             <Text variant="titleMedium" style={styles.infoLabel}>Account Type:</Text>
+//             <Text variant="bodyLarge" style={{ textTransform: 'capitalize' }}>{user.role || 'User'}</Text>
+//           </View>
+//         </View>
+//
+//         <View style={styles.actionButtons}>
+//           <PaperButton
+//             mode="outlined"
+//             icon="account-edit"
+//             onPress={() => {
+//               // Implement edit functionality later
+//               console.log('Edit profile pressed');
+//             }}
+//             style={[styles.button, { marginBottom: 12 }]}
+//           >
+//             Edit Profile
+//           </PaperButton>
+//
+//           <PaperButton
+//             mode="contained"
+//             icon="logout"
+//             onPress={handleLogout}
+//             style={styles.button}
+//           >
+//             Logout
+//           </PaperButton>
+//         </View>
+//       </View>
+// // Add this section to your JSX, perhaps after the user info section
+// <View style={styles.section}>
+//   <Text variant="headlineMedium" style={{ color: theme.colors.primary, marginBottom: 16 }}>
+//     Order History
+//   </Text>
+//
+//   {loadingOrders ? (
+//     <ActivityIndicator size="large" color={theme.colors.primary} />
+//   ) : orders.length === 0 ? (
+//     <Text>No previous orders</Text>
+//   ) : (
+//     orders.map((order) => (
+//       <View key={order._id} style={styles.orderCard}>
+//         <Text variant="titleMedium">Order #{order._id.substring(0, 8)}</Text>
+//         <Text>Date: {new Date(order.createdAt).toLocaleDateString()}</Text>
+//         <Text>Total: ${order.totalAmount.toFixed(2)}</Text>
+//         <Text>Items: {order.items.length}</Text>
+//       </View>
+//     ))
+//   )}
+// </View>
+//     </ScrollView>
+//   );
+// };
+//
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   centerContent: {
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   headerContainer: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   title: {
+//     flex: 1,
+//     textAlign: 'left',
+//   },
+//   contentContainer: {
+//     flex: 1,
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   avatarContainer: {
+//     marginVertical: 20,
+//     alignItems: 'center',
+//   },
+//   infoSection: {
+//     width: '100%',
+//     marginBottom: 24,
+//   },
+//   infoRow: {
+//     flexDirection: 'row',
+//     marginBottom: 12,
+//     paddingBottom: 8,
+//     borderBottomWidth: 1,
+//     borderBottomColor: '#e0e0e0',
+//   },
+//   infoLabel: {
+//     width: 100,
+//     fontWeight: 'bold',
+//   },
+//   actionButtons: {
+//     width: '100%',
+//     marginTop: 20,
+//   },
+//   button: {
+//     width: '100%',
+//   },
+//   orderHistoryContainer: {
+//     paddingHorizontal: 20,
+//     paddingBottom: 20,
+//   },
+//   orderItem: {
+//     marginBottom: 12,
+//   },
+// });
+//
+// export default ProfileScreen;
+
+
+
+// fetches user info and everything only.. no prev orders displaying
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useTheme, Text, Divider, Avatar } from 'react-native-paper';

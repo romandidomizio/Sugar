@@ -1,16 +1,19 @@
-/* CartScreen.tsx */
+// src/screens/CartScreen.tsx
 import React from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { useTheme, Text, Divider, IconButton, Surface } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
 import { PaperButton } from '../components/paper';
 import { useCart, CartItem } from '../contexts/CartContext';
+import { useAppContext } from '../contexts/AppContext';
 
 const CartScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { items, removeFromCart, updateQuantity, clearCart, getTotal } = useCart();
+  const { items, removeFromCart, updateQuantity, clearCart, getTotal, checkout, loading, error } = useCart();
+  const { state } = useAppContext();
+  const { isAuthenticated } = state.auth;
 
   const EmptyCart = () => (
     <View style={styles.emptyContainer}>
@@ -30,12 +33,46 @@ const CartScreen: React.FC = () => {
     </View>
   );
 
-  const handleCheckout = () => {
-    Alert.alert(
-      'Checkout',
-      'This would normally proceed to checkout. Feature coming soon!',
-      [{ text: 'OK' }]
-    );
+  const NotLoggedInView = () => (
+    <View style={styles.emptyContainer}>
+      <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
+        Please Log In
+      </Text>
+      <Text variant="bodyLarge" style={styles.emptyText}>
+        You need to be logged in to use the cart
+      </Text>
+      <PaperButton
+        variant="primary"
+        onPress={() => navigation.navigate('Login')}
+        style={styles.shopButton}
+      >
+        Go to Login
+      </PaperButton>
+    </View>
+  );
+
+  const handleCheckout = async () => {
+    try {
+      const success = await checkout();
+      if (success) {
+        Alert.alert(
+          'Order Completed',
+          'Your order has been placed successfully!',
+          [
+            {
+              text: 'View Orders',
+              onPress: () => navigation.navigate('Profile')
+            },
+            {
+              text: 'Continue Shopping',
+              onPress: () => navigation.navigate('Home')
+            }
+          ]
+        );
+      }
+    } catch (err) {
+      Alert.alert('Checkout Failed', 'There was an error processing your order. Please try again.');
+    }
   };
 
   const handleClearCart = () => {
@@ -65,6 +102,7 @@ const CartScreen: React.FC = () => {
             icon="minus"
             size={20}
             onPress={() => updateQuantity(item.id, item.quantity - 1)}
+            disabled={loading}
           />
           <Text variant="bodyLarge" style={styles.quantityText}>
             {item.quantity}
@@ -73,6 +111,7 @@ const CartScreen: React.FC = () => {
             icon="plus"
             size={20}
             onPress={() => updateQuantity(item.id, item.quantity + 1)}
+            disabled={loading}
           />
         </View>
 
@@ -81,10 +120,15 @@ const CartScreen: React.FC = () => {
           size={24}
           onPress={() => removeFromCart(item.id)}
           style={styles.deleteButton}
+          disabled={loading}
         />
       </Surface>
     );
   };
+
+  if (!isAuthenticated) {
+    return <NotLoggedInView />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -99,7 +143,17 @@ const CartScreen: React.FC = () => {
 
       <Divider />
 
-      {items.length === 0 ? (
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : items.length === 0 ? (
         <EmptyCart />
       ) : (
         <>
@@ -120,10 +174,10 @@ const CartScreen: React.FC = () => {
             </View>
 
             <View style={styles.buttonContainer}>
-              <PaperButton variant="tertiary" size="small" onPress={handleClearCart}>
+              <PaperButton variant="tertiary" size="small" onPress={handleClearCart} disabled={loading}>
                 Clear Cart
               </PaperButton>
-              <PaperButton variant="primary" onPress={handleCheckout}>
+              <PaperButton variant="primary" onPress={handleCheckout} disabled={loading}>
                 Checkout
               </PaperButton>
             </View>
@@ -206,6 +260,243 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#ffdddd',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 8,
+  },
+  errorText: {
+    color: '#ff0000',
+  },
 });
 
 export default CartScreen;
+// /* CartScreen.tsx */
+// import React from 'react';
+// import { View, StyleSheet, FlatList, Alert } from 'react-native';
+// import { useTheme, Text, Divider, IconButton, Surface } from 'react-native-paper';
+// import { useNavigation } from '@react-navigation/native';
+//
+// import { PaperButton } from '../components/paper';
+// import { useCart, CartItem } from '../contexts/CartContext';
+//
+// const CartScreen: React.FC = () => {
+//   const theme = useTheme();
+//   const navigation = useNavigation();
+//   const { items, removeFromCart, updateQuantity, clearCart, getTotal } = useCart();
+//
+//   const EmptyCart = () => (
+//     <View style={styles.emptyContainer}>
+//       <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
+//         Your cart is empty
+//       </Text>
+//       <Text variant="bodyLarge" style={styles.emptyText}>
+//         Add items from the marketplace to start shopping!
+//       </Text>
+//       <PaperButton
+//         variant="primary"
+//         onPress={() => navigation.navigate('Home')}
+//         style={styles.shopButton}
+//       >
+//         Go to Marketplace
+//       </PaperButton>
+//     </View>
+//   );
+//
+// // Update the handleCheckout function in CartScreen.tsx
+//
+// const handleCheckout = async () => {
+//   try {
+//     await checkout();
+//     Alert.alert(
+//       'Order Successful',
+//       'Your order has been placed successfully!',
+//       [{ text: 'OK' }]
+//     );
+//   } catch (error) {
+//     Alert.alert(
+//       'Checkout Failed',
+//       error instanceof Error ? error.message : 'An error occurred during checkout',
+//       [{ text: 'OK' }]
+//     );
+//   }
+// };
+//
+//   const handleClearCart = () => {
+//     Alert.alert(
+//       'Clear Cart',
+//       'Are you sure you want to remove all items from your cart?',
+//       [
+//         { text: 'Cancel', style: 'cancel' },
+//         { text: 'Clear', style: 'destructive', onPress: () => clearCart() }
+//       ]
+//     );
+//   };
+//
+//   const renderCartItem = ({ item }: { item: CartItem }) => {
+//     return (
+//       <Surface style={[styles.cartItem, { backgroundColor: theme.colors.surface }]} elevation={1}>
+//         <View style={styles.itemInfo}>
+//           <Text variant="titleMedium" style={styles.itemTitle}>
+//             {item.title}
+//           </Text>
+//           <Text variant="bodyMedium">Producer: {item.producer}</Text>
+//           <Text variant="bodyMedium">Price: {item.price}</Text>
+//         </View>
+//
+//         <View style={styles.quantityContainer}>
+//           <IconButton
+//             icon="minus"
+//             size={20}
+//             onPress={() => updateQuantity(item.id, item.quantity - 1)}
+//           />
+//           <Text variant="bodyLarge" style={styles.quantityText}>
+//             {item.quantity}
+//           </Text>
+//           <IconButton
+//             icon="plus"
+//             size={20}
+//             onPress={() => updateQuantity(item.id, item.quantity + 1)}
+//           />
+//         </View>
+//
+//         <IconButton
+//           icon="delete"
+//           size={24}
+//           onPress={() => removeFromCart(item.id)}
+//           style={styles.deleteButton}
+//         />
+//       </Surface>
+//     );
+//   };
+//
+//   return (
+//     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+//       <View style={styles.headerContainer}>
+//         <Text
+//           variant="headlineLarge"
+//           style={[styles.title, { color: theme.colors.primary }]}
+//         >
+//           Your Cart
+//         </Text>
+//       </View>
+//
+//       <Divider />
+//
+//       {items.length === 0 ? (
+//         <EmptyCart />
+//       ) : (
+//         <>
+//           <FlatList
+//             data={items}
+//             renderItem={renderCartItem}
+//             keyExtractor={(item) => item.id}
+//             contentContainerStyle={styles.listContainer}
+//             ItemSeparatorComponent={() => <View style={styles.separator} />}
+//           />
+//
+//           <View style={[styles.summaryContainer, { backgroundColor: theme.colors.surface }]}>
+//             <View style={styles.summaryRow}>
+//               <Text variant="titleMedium">Total:</Text>
+//               <Text variant="titleLarge" style={{ color: theme.colors.primary }}>
+//                 {getTotal()}
+//               </Text>
+//             </View>
+//
+//             <View style={styles.buttonContainer}>
+//               <PaperButton variant="tertiary" size="small" onPress={handleClearCart}>
+//                 Clear Cart
+//               </PaperButton>
+//               <PaperButton variant="primary" onPress={handleCheckout}>
+//                 Checkout
+//               </PaperButton>
+//             </View>
+//           </View>
+//         </>
+//       )}
+//     </View>
+//   );
+// };
+//
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   headerContainer: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   title: {
+//     flex: 1,
+//     textAlign: 'left',
+//   },
+//   emptyContainer: {
+//     flex: 1,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   emptyText: {
+//     textAlign: 'center',
+//     marginVertical: 16,
+//   },
+//   shopButton: {
+//     marginTop: 20,
+//   },
+//   listContainer: {
+//     padding: 16,
+//   },
+//   cartItem: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     padding: 16,
+//     borderRadius: 8,
+//   },
+//   itemInfo: {
+//     flex: 1,
+//   },
+//   itemTitle: {
+//     fontWeight: 'bold',
+//   },
+//   quantityContainer: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     marginRight: 8,
+//   },
+//   quantityText: {
+//     marginHorizontal: 8,
+//     fontWeight: 'bold',
+//   },
+//   deleteButton: {
+//     marginLeft: 8,
+//   },
+//   separator: {
+//     height: 12,
+//   },
+//   summaryContainer: {
+//     padding: 16,
+//     borderTopWidth: 1,
+//     borderTopColor: '#e0e0e0',
+//   },
+//   summaryRow: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 16,
+//   },
+//   buttonContainer: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//   },
+// });
+//
+// export default CartScreen;

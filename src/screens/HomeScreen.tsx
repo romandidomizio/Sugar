@@ -1,3 +1,115 @@
+// import React, { useState, useEffect, useContext } from 'react';
+// import { View, StyleSheet, FlatList, Alert } from 'react-native';
+// import { useTheme, Text, Divider } from 'react-native-paper';
+// import { useNavigation } from '@react-navigation/native';
+// import axios from 'axios';
+//
+// import { PaperCard } from '../components/paper';
+// import { PaperButton } from '../components/paper';
+// import { CartContext } from '../contexts/CartContext';
+//
+// interface MarketplaceItem {
+//   id: string;
+//   title: string;
+//   producer: string;
+//   price: string;
+//   description: string;
+//   imageUri: string;
+//   _id: string;
+// }
+//
+// const HomeScreen: React.FC = () => {
+//   const theme = useTheme();
+//   const navigation = useNavigation();
+//   const { addItemToCart, cartItems } = useContext(CartContext)!;
+//
+//   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
+//
+//   useEffect(() => {
+//     const fetchFoodItems = async () => {
+//       try {
+//         const response = await axios.get('http://localhost:3000/api/marketplace');
+//         setMarketplaceItems(response.data);
+//       } catch (error) {
+//         console.error('Error fetching food items:', error);
+//       }
+//     };
+//     fetchFoodItems();
+//   }, []);
+//
+//   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+//
+//   const renderItem = ({ item }: { item: MarketplaceItem }) => (
+//     <PaperCard
+//       key={item._id}  // Ensure _id is unique
+//       title={item.title}
+//       subtitle={`Producer: ${item.producer}`}
+//       content={`${item.description}\n\nPrice: ${item.price}`}
+//       imageUri={item.imageUri}
+//       actions={
+//         <PaperButton
+//           variant="primary"
+//           onPress={() => {
+//             addItemToCart(item);
+//             Alert.alert(
+//               'Added to Cart',
+//               `${item.title} has been added to your cart!`,
+//               [{ text: 'OK' }]
+//             );
+//           }}
+//         >
+//           Add to Cart
+//         </PaperButton>
+//       }
+//     />
+//   );
+//
+//   return (
+//     <View style={styles.container}>
+//       <FlatList
+//         data={marketplaceItems}
+//         keyExtractor={(item) => item._id || item.id}  // Ensure _id or id is unique
+//         renderItem={renderItem}
+//         ListHeaderComponent={
+//           <View>
+//             <Divider />
+//             <View style={styles.marketplaceSection}>
+//               <Text
+//                 variant="titleLarge"
+//                 style={[styles.sectionTitle, { color: theme.colors.primary }]}
+//               >
+//                 Marketplace
+//               </Text>
+//             </View>
+//           </View>
+//         }
+//         numColumns={3}
+//         columnWrapperStyle={styles.row}
+//         contentContainerStyle={styles.container}
+//       />
+//     </View>
+//   );
+// };
+//
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   marketplaceSection: {
+//     padding: 20,
+//   },
+//   sectionTitle: {
+//     marginBottom: 15,
+//   },
+//   row: {
+//     justifyContent: 'space-between',
+//     marginBottom: 20,
+//   },
+// });
+//
+// export default HomeScreen;
+
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { useTheme, Text, Divider, Badge } from 'react-native-paper';
