@@ -6,7 +6,7 @@ import { View, Image, StyleSheet } from 'react-native';
 
 import { SugarTheme } from './src/theme/SugarTheme';
 import { AppProvider } from './src/contexts/AppContext';
-import { CartProvider } from './src/contexts/CartContext';
+// import { CartProvider } from './src/contexts/CartContext';
 import MainNavigator from './src/navigation/MainNavigator';
 import LoadingScreen from './src/screens/WelcomeScreen';
 
@@ -29,10 +29,8 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={SugarTheme}>
         <AppProvider>
-          <CartProvider>
             <MainNavigator />
             <StatusBar style="auto" />
-          </CartProvider>
         </AppProvider>
       </PaperProvider>
     </SafeAreaProvider>

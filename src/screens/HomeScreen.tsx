@@ -6,7 +6,6 @@ import axios from 'axios';
 
 import { PaperCard } from '../components/paper';
 import { PaperButton } from '../components/paper';
-import { useCart } from '../contexts/CartContext';
 
 // Define the item interface to match CartItem
 interface MarketplaceItem {
@@ -22,7 +21,6 @@ interface MarketplaceItem {
 const HomeScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { addToCart, items } = useCart(); // Use the CartContext
 
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
 
@@ -38,8 +36,7 @@ const HomeScreen: React.FC = () => {
     fetchFoodItems();
   }, []);
 
-  // Count items in cart for badge
-  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
 
   // Render item function for FlatList
   const renderItem = ({ item }: { item: MarketplaceItem }) => (
@@ -53,12 +50,7 @@ const HomeScreen: React.FC = () => {
         <PaperButton
           variant="primary"
           onPress={() => {
-            addToCart(item);
-            Alert.alert(
-              'Added to Cart',
-              `${item.title} has been added to your cart!`,
-              [{ text: 'OK' }]
-            );
+console.log('add to cart pushed');
           }}
         >
           Add to Cart

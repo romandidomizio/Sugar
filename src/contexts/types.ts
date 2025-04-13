@@ -1,10 +1,24 @@
 // Global type definitions for application state
 
+// export interface User {
+//   username: string;
+//   name?: string;
+//   email?: string;
+//   phone?: string;
+// }
+// In src/contexts/types.ts
 export interface User {
+  _id: string; // Add _id as it's usually returned and useful
   username: string;
-  name?: string;
-  email?: string;
-  phone?: string;
+  name?: string; // Keep optional if they aren't always required
+  email: string;  // Make required if it is in your schema
+  phone?: string; // Keep optional if it isn't always required
+  balance: number; // <-- ADD THIS LINE (make it required number)
+  // Add any other fields returned by your backend profile endpoint (e.g., role, createdAt)
+  role?: string;
+  isVerified?: boolean;
+  createdAt?: string | Date; // Use string if backend sends ISO string, Date if you convert
+  updatedAt?: string | Date;
 }
 
 export interface AuthState {

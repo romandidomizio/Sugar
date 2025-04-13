@@ -108,6 +108,37 @@ class AuthService {
     }
   }
 
+  // In src/services/AuthService.ts, inside the AuthService class
+
+  async addBalance(amount: number): Promise<User> { // Return the updated User object
+    const token = await AsyncStorage.getItem('userToken'); // Get token
+
+    if (!token) {
+      console.error('[AuthService] No authentication token for adding balance');
+      throw new Error('No authentication token');
+    }
+
+    try {
+      // Make PUT request to /balance endpoint relative to API_URL
+      const response = await axios.put<User>( // Expect User object in response
+        `${API_URL}/balance`, // Correct endpoint path
+        { amount }, // Request body
+        {
+          headers: { Authorization: `Bearer ${token}` } // Auth header
+        }
+      );
+      console.log('[AuthService] Balance updated successfully');
+      return response.data; // Return the updated user data from the backend
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to add balance';
+      console.error(`[AuthService] Add balance failed: ${errorMessage}`);
+      throw errorMessage; // Re-throw the error for AppContext to catch
+    }
+  }
+
+  // Make sure this new method is included if you manually list methods in the class export,
+  // but since you export `new AuthService()`, just adding it to the class is sufficient.
+
   async isAuthenticated(): Promise<boolean> {
     const token = await AsyncStorage.getItem('userToken');
     return !!token;
@@ -116,6 +147,7 @@ class AuthService {
   async getToken(): Promise<string | null> {
     return await AsyncStorage.getItem('userToken');
   }
+
 }
 
 export default new AuthService();

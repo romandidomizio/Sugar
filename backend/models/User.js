@@ -45,7 +45,14 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+    balance: {
+      type: Number,
+      required: true, // Make it required so all users definitely have it
+      default: 0     // Start users with a balance of 0
+      // Optional: Add a minimum value if needed, though maybe not necessary yet
+      // min: 0
+    },
 }, {
   timestamps: true
 });

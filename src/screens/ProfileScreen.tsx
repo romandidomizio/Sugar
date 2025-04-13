@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { useTheme, Text, Divider, Avatar } from 'react-native-paper';
+import { useTheme, Text, Divider, Avatar, TextInput, Snackbar } from 'react-native-paper';
 import { PaperButton } from '../components/paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAppContext } from '../contexts/AppContext';
@@ -8,13 +8,63 @@ import { useAppContext } from '../contexts/AppContext';
 const ProfileScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { state, logout } = useAppContext();
-  const { user, isAuthenticated } = state.auth;
+//   const { state, logout } = useAppContext();
+//   const { user, isAuthenticated } = state.auth;
+const { state, logout, addBalance } = useAppContext(); // <-- Make sure addBalance is destructured
+const { user, isAuthenticated } = state.auth;
+const [amountToAdd, setAmountToAdd] = React.useState<string>('');
+const [isLoading, setIsLoading] = React.useState<boolean>(false);
+const [snackbarVisible, setSnackbarVisible] = React.useState<boolean>(false);
+const [snackbarMessage, setSnackbarMessage] = React.useState<string>('');
 
   const handleLogout = async () => {
     await logout();
     navigation.navigate('Login');
   };
+
+  // Inside the ProfileScreen component, define this async function:
+  const handleAddBalance = async () => {
+    const numericAmount = parseFloat(amountToAdd);
+
+    // --- Validation ---
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      setSnackbarMessage('Please enter a valid positive amount.');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    // --- Start Loading ---
+    setIsLoading(true);
+    setSnackbarMessage(''); // Clear previous messages
+    setSnackbarVisible(false);
+
+    try {
+      // --- Call Context Function ---
+      const success = await addBalance(numericAmount); // The function you added to AppContext
+
+      // --- Handle Response ---
+      if (success) {
+        setAmountToAdd(''); // Clear input on success
+        setSnackbarMessage('Balance updated successfully!');
+        setSnackbarVisible(true);
+        // The balance displayed above will update automatically because
+        // AppContext dispatched UPDATE_USER, triggering a re-render
+      } else {
+        // Error message handled by AppContext/AuthService, but provide generic feedback
+        setSnackbarMessage('Failed to update balance. Please try again.');
+        setSnackbarVisible(true);
+      }
+    } catch (error) {
+      // Catch any unexpected errors during the process
+      console.error("Error in handleAddBalance:", error);
+      setSnackbarMessage('An unexpected error occurred.');
+      setSnackbarVisible(true);
+    } finally {
+      // --- Stop Loading ---
+      setIsLoading(false);
+    }
+  };
+
 
   // If not authenticated
   if (!isAuthenticated || !user) {
@@ -80,8 +130,37 @@ const ProfileScreen: React.FC = () => {
             <Text variant="titleMedium" style={styles.infoLabel}>Account Type:</Text>
             <Text variant="bodyLarge" style={{ textTransform: 'capitalize' }}>{user.role || 'User'}</Text>
           </View>
-        </View>
 
+          <View style={styles.infoRow}>
+            <Text variant="titleMedium" style={styles.infoLabel}>Balance:</Text>
+            {/* Format balance as currency, using toFixed(2) */}
+            <Text variant="bodyLarge">${user.balance.toFixed(2)}</Text>
+          </View>
+        </View>
+<View style={styles.balanceSection}>
+  <Text variant="titleLarge" style={styles.balanceTitle}>Manage Balance</Text>
+  <Divider style={styles.divider} />
+
+  <TextInput
+    label="Amount to Add ($)"
+    value={amountToAdd}
+    onChangeText={setAmountToAdd}
+    keyboardType="numeric"
+    mode="outlined" // Or "flat"
+    style={styles.input}
+    disabled={isLoading} // Disable input while loading
+  />
+  <PaperButton
+    mode="contained"
+    icon="plus-circle"
+    onPress={handleAddBalance}
+    loading={isLoading} // Show loading indicator on button
+    disabled={isLoading || !amountToAdd} // Disable if loading or no amount entered
+    style={styles.button} // Reuse existing button style or create new
+  >
+    Add Funds
+  </PaperButton>
+</View>
         <View style={styles.actionButtons}>
           <PaperButton
             mode="outlined"
@@ -106,6 +185,14 @@ const ProfileScreen: React.FC = () => {
         </View>
       </View>
     </ScrollView>
+    // Add Snackbar at the bottom (outside ScrollView if possible, or at end of content)
+    <Snackbar
+      visible={snackbarVisible}
+      onDismiss={() => setSnackbarVisible(false)}
+      duration={Snackbar.DURATION_SHORT} // Or MEDIUM / LONG
+    >
+      {snackbarMessage}
+    </Snackbar>
   );
 };
 
@@ -158,6 +245,23 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
+  },
+  balanceSection: {
+    width: '100%',
+    marginTop: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10, // Adjust as needed
+  },
+  balanceTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
+    color: theme.colors.primary, // Use theme color
+  },
+  divider: {
+    marginBottom: 16,
+  },
+  input: {
+    marginBottom: 16,
   },
 });
 

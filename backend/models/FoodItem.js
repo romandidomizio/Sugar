@@ -9,10 +9,15 @@ const FoodItemSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  price: {
-    type: String,
-    required: true
-  },
+//  price: {
+//    type: String,
+//    required: true
+//  },
+price: {
+    type: Number,
+    required: true,
+    min: 0 // Optional: ensure price isn't negative
+},
   description: {
     type: String,
     required: true

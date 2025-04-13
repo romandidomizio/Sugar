@@ -119,6 +119,7 @@ const AppContext = createContext<{
   register: (username: string, password: string, name?: string, email?: string, phone?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
+  addBalance: (amount: number) => Promise<boolean>; // <-- Add this line
   clearError: () => void;
 }>({
   state: initialState,
@@ -127,6 +128,7 @@ const AppContext = createContext<{
   register: async () => false,
   logout: async () => {},
   updateProfile: async () => false,
+    addBalance: async () => false, // <-- Add default implementation
   clearError: () => {}
 });
 
@@ -219,6 +221,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return false;
     }
   };
+  const addBalance = async (amount: number) => {
+    try {
+      // Call the new AuthService method
+      const updatedUser = await AuthService.addBalance(amount);
+      // Dispatch UPDATE_USER with the full updated user object from backend
+      dispatch({
+        type: 'UPDATE_USER',
+        payload: updatedUser
+      });
+      return true; // Indicate success
+    } catch (error: any) {
+      console.error('Add balance failed:', error);
+      // Optionally dispatch an error action
+      // dispatch({ type: 'ADD_BALANCE_FAILURE', payload: error.toString() });
+      return false; // Indicate failure
+    }
+  };
 
   const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
@@ -233,6 +252,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         register, 
         logout, 
         updateProfile,
+        addBalance,
         clearError
       }}
     >
