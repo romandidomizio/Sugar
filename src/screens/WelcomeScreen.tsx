@@ -1,28 +1,12 @@
-/* LoadingScreen.tsx */
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+/* WelcomeScreen.tsx */
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useTheme, Text, Divider } from 'react-native-paper';
+import { PaperButton } from '../components/paper';
 import { useNavigation } from '@react-navigation/native';
 
-const LoadingScreen = () => {
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      navigation.navigate('Welcome');
-    }, 3000); // 3-second loading
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  return (
-    <View style={styles.container}>
-      <Image
-        source={require('../../assets/sugar_logo.gif')}
-        style={styles.gif}
-        resizeMode="contain"
-      />
-    </View>
-  );
+const WelcomeScreen = () => {
+  ...
 };
 
 const styles = StyleSheet.create({
@@ -31,11 +15,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E8B57',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  gif: {
-    width: 200,
-    height: 200,
-  },
+  }
 });
 
-export default LoadingScreen;
+export default WelcomeScreen;
