@@ -8,19 +8,22 @@ import { SugarTheme } from './src/theme/SugarTheme';
 import { AppProvider } from './src/contexts/AppContext';
 import { CartProvider } from './src/contexts/CartContext';
 import MainNavigator from './src/navigation/MainNavigator';
+import LoadingScreen from './src/screens/WelcomeScreen';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
 
+  const handleLoadingFinish = () => setIsReady(true);
+
   useEffect(() => {
     const init = async () => {
-      setTimeout(() => setIsReady(true), 3000);
+      // setTimeout(() => setIsReady(true), 3000);
     };
 
     init();
   }, []);
 
-  if (!isReady) return null;
+  if (!isReady) return <LoadingScreen onFinish={handleLoadingFinish} />;
 
   return (
     <SafeAreaProvider>

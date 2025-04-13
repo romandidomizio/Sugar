@@ -52,7 +52,7 @@ const RegisterScreen: React.FC = () => {
     );
     
     if (success) {
-      navigation.navigate('Home');
+      navigation.navigate('BottomTab', { screen: 'Home' });
     } else {
       setErrorModalVisible(true);
     }
@@ -152,6 +152,16 @@ const RegisterScreen: React.FC = () => {
               >
                 Create Account
               </PaperButton>
+
+              <PaperButton
+                  variant="tertiary"
+                  onPress={() => navigation.navigate('Login')}
+                  width='full'
+                  style={styles.registerButton}
+              >
+                Login
+              </PaperButton>
+
             </View>
           )}
         </Formik>
