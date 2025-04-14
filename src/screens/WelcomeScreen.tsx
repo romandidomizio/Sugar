@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // Looking at gradients - npx expo install expo-linear-gradient
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { PaperButton } from '../components/paper';
 
@@ -9,7 +9,7 @@ const WelcomeScreen = () => {
 
   return (
     <LinearGradient
-      colors={['#F0FFF0', '#587651']} // Old color on figma #587651 #90EE90 #CFF5CF #F0FFF0
+      colors={['#F0FFF0', '#587651']}
       style={styles.container}
     >
       <View style={styles.content}>
@@ -72,26 +72,23 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
-buttonContainer: {
-  width: '100%',
-//   backgroundColor: 'rgba(255, 0, 0, 0.2)', // debug color
-},
-buttonRow: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-//   backgroundColor: 'rgba(0, 255, 0, 0.2)', // debug color
-},
-
-loginButton: {
-  flex: 1,
-  marginRight: 6,
-  minHeight: 40,
-},
-registerButton: {
-  flex: 1,
-  minHeight: 40,
-},
+  buttonContainer: {
+    width: '100%',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginButton: {
+    flex: 1,
+    marginRight: 6,
+    minHeight: 40,
+  },
+  registerButton: {
+    flex: 1,
+    minHeight: 40,
+  },
 });
 
 export default WelcomeScreen;

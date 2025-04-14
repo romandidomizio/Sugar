@@ -25,6 +25,7 @@ export default function App() {
 
         //pre-load gif logo
         await Asset.loadAsync([require('./assets/sugar_logo.gif')]);
+        await Asset.loadAsync([require('./assets/sugar.png')]);
 
         // Add additional setup here check auth?
       } catch (e) {

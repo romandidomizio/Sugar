@@ -259,10 +259,6 @@ const CustomNavigationBar = ({ navigation, back, route }: any) => {
           iconColor={theme.colors.surface}
         />
       ) : null}
-      {/* <Appbar.Content
-        title={routeName === 'BottomTab' ? 'Sugar Logo' : routeName}
-        titleStyle={{ color: theme.colors.surface }}
-      /> */}
       <TouchableOpacity onPress={() => navigation.navigate('BottomTab', {screen: 'Home',})}>
         <Image
           source={require('../../assets/sugar.png')}
