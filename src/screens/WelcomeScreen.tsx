@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
-    gap: 115,
+    gap: 12,
   },
   loginButton: {
     flex: 1,
