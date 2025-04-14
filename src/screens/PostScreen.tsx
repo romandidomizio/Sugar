@@ -40,15 +40,15 @@ import axios from 'axios'; // Import the core axios object
 const ListingSchema = Yup.object().shape({
   title: Yup.string().required('Title is required'),
   producer: Yup.string().required('Producer/Brand is required'),
-  // Updated Price Validation:
+  // Updated Price Validation to allow 0.00:
   price: Yup.string()
     .required('Price is required')
-    .matches(/^\d+(\.\d{2})?$/, 'Price must be in 0.00 format (e.g., 5.00 or 10.50)') // Regex for ##.## format
-    .test('is-positive', 'Price must be positive', (value) => {
-      // Returns true if the value is a positive number
+    .matches(/^\d+(\.\d{2})?$/, 'Price must be in 0.00 format (e.g., 5.00 or 0.00)') // Regex for ##.## format
+    .test('is-non-negative', 'Price must be 0.00 or positive', (value) => {
+      // Allows 0.00 or positive numbers
       if (!value) return true; // Pass if empty, 'required' catches it
       const num = parseFloat(value);
-      return !isNaN(num) && num > 0;
+      return !isNaN(num) && num >= 0; // Check if number and >= 0
     }),
   description: Yup.string().required('Description is required'),
   imageUri: Yup.string().required('Image is required'),
@@ -550,27 +550,27 @@ const PostScreen: React.FC = () => {
       sizeMeasurementValue = values.sizeMeasurement; // Use the provided size measurement
     }
 
-    // Attempt to parse price, default to 0 if invalid format
-    const priceValue = parseFloat(values.price);
+    // Format price to two decimal places before appending
+    const formattedPrice = Number(values.price).toFixed(2);
 
     const listingData = {
       title: values.title,
       producer: values.producer,
-      price: !isNaN(priceValue) ? priceValue : 0, // Send parsed number or 0
+      price: formattedPrice, // Send formatted price
       description: values.description,
       // Image details remain strings
       imageUri: values.imageUri,
       imageType: values.imageType,
       imageName: values.imageName,
       origin: values.origin,
-      certifications: values.certifications,
-      expiryDate: values.expiryDate, // Keep as Date object or null
+      certifications: values.certifications || [],
+      expiryDate: values.expiryDate ? values.expiryDate.toISOString() : null,
       unitType: values.unitType,
-      quantity: quantityValue, // Send null if unitType is 'size'
-      sizeMeasurement: sizeMeasurementValue, // Send null if unitType is 'unit'
+      quantity: quantityValue, // Use calculated quantity
+      sizeMeasurement: sizeMeasurementValue, // Use calculated size measurement
       contactMethod: values.contactMethod,
       shareLocation: values.shareLocation,
-      location: values.location, // Use the location data obtained earlier
+      location: values.location, // Send location object
     };
 
     console.log('[PostScreen] Sending POST request to', `${API_BASE_URL}/api/user/listings`);
@@ -580,20 +580,15 @@ const PostScreen: React.FC = () => {
       const formData = new FormData();
 
       // Append the image file if it exists
-      if (values.imageUri) {
-        // Determine the file type and name
-        const uriParts = values.imageUri.split('.');
-        const fileType = uriParts[uriParts.length - 1];
-        const fileName = values.imageUri.split('/').pop();
-        
+      if (values.imageUri && values.imageName && values.imageType) {
         formData.append('image', {
           uri: values.imageUri,
-          name: fileName || `photo.${fileType}`, // Use original name or default
-          type: `image/${fileType}`, // Adjust mime type if needed
+          name: values.imageName,
+          type: values.imageType,
         } as any); // Type assertion needed for FormData append with file object
       }
 
-      // Append the stringified listing details
+      // Append the stringified listing details - BACKEND EXPECTS THIS FIELD
       formData.append('listingDetails', JSON.stringify(listingData));
 
       const response = await axiosInstance[apiMethod](apiUrl, formData, {
