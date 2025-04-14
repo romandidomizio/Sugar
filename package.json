@@ -20,6 +20,8 @@
     "color": "^5.0.0",
     "date-fns": "^4.1.0",
     "expo": "~52.0.42",
+    "expo-asset": "~11.0.5",
+    "expo-linear-gradient": "~14.0.2",
     "expo-status-bar": "2.0.1",
     "formik": "2.4.6",
     "hyphenate-style-name": "^1.1.0",
@@ -32,9 +34,7 @@
     "react-native-screens": "4.4.0",
     "react-native-web": "~0.19.13",
     "typescript": "5.3.3",
-    "yup": "1.6.1",
-    "expo-linear-gradient": "~14.0.2",
-    "expo-asset": "~11.0.5"
+    "yup": "1.6.1"
   },
   "devDependencies": {
     "@babel/core": "7.25.2",
