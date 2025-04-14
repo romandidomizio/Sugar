@@ -88,8 +88,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setLoading(true);
     setError(null);
     try {
-      // Fetching all items for the general marketplace
-      const response = await axios.get<MarketplaceItem[]>(`${API_BASE_URL}/api/marketplace`); // Expect array directly
+      // Fetching all items for the general marketplace - Use the correct endpoint
+      const response = await axios.get<MarketplaceItem[]>(`${API_BASE_URL}/api/listings`); // Changed from /api/marketplace
 
       // Check if the response data itself is an array
       if (response.data && Array.isArray(response.data)) {

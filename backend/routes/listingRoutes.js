@@ -3,6 +3,24 @@ const express = require('express');
 const router = express.Router();
 const FoodItem = require('../models/FoodItem'); // Assuming FoodItem model is in ../models/FoodItem
 
+// --- GET all listings ---
+// Path: /api/listings
+// Access: Public (for marketplace display)
+router.get('/', async (req, res) => {
+    console.log('[API] GET /listings (all) request received.');
+    try {
+        // Fetch all items and sort by createdAt descending (newest first)
+        const listings = await FoodItem.find({}).sort({ createdAt: -1 });
+        
+        console.log(`[API] Found ${listings.length} listings.`);
+        res.status(200).json(listings);
+        
+    } catch (error) {
+        console.error('[API] Error fetching all listings:', error);
+        res.status(500).json({ error: 'Server error while fetching listings' });
+    }
+});
+
 // --- GET a specific listing by ID ---
 // Path: /api/listings/:id
 // Access: Public (anyone can view listing details)
