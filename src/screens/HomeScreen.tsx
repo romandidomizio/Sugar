@@ -32,6 +32,7 @@ import { API_BASE_URL } from '@env';
 console.log('[HomeScreen] API_BASE_URL:', API_BASE_URL); // Log API_BASE_URL on component load
 
 import { useCart } from '../contexts/CartContext';
+import SearchBar from '../components/SearchBar';
 
 // Define composite navigation prop type
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -73,6 +74,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // State for modal visibility and selected item
   const [modalVisible, setModalVisible] = useState(false);
@@ -169,6 +171,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const freeItems = marketplaceItems.filter(item => parsePrice(item.price) === 0);
   const paidItems = marketplaceItems.filter(item => parsePrice(item.price) > 0);
+  const filteredItems = marketplaceItems.filter((item) => {
+  const query = searchQuery.toLowerCase();
+  return (
+    item.title.toLowerCase().includes(query) ||
+    item.description.toLowerCase().includes(query) ||
+    item.producer.toLowerCase().includes(query)
+  );
+});
 
   // --- Modal Handling Functions ---
   const handleCardPress = (item: MarketplaceItem) => {
@@ -628,6 +638,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   // --- Render Content --- 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollViewContent}>
+    <SearchBar
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      placeholder="Search listings by title, description, or producer..."
+    />
+
       {/* Section for Free Items */}
       <View style={styles.sectionContainer}>
         <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.primary }]}>
@@ -635,7 +651,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </Text>
         {freeItems.length > 0 ? (
           <FlatList
-            data={freeItems}
+            data={filteredItems.filter(item => parsePrice(item.price) === 0)}
             renderItem={renderItem}
             keyExtractor={(item) => `free-${item._id}`}
             horizontal={true}
@@ -656,7 +672,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </Text>
         {paidItems.length > 0 ? (
           <FlatList
-            data={paidItems}
+            data={filteredItems.filter(item => parsePrice(item.price) > 0)}
             renderItem={renderItem}
             keyExtractor={(item) => `paid-${item._id}`}
             horizontal={true}
