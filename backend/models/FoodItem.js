@@ -62,14 +62,35 @@ const FoodItemSchema = new mongoose.Schema({
       message: 'Unit type must be either \'unit\' or \'size\'.'
     }
   },
-  quantity: { // Number of individual units available
+  quantity: {
     type: Number,
-    required: function() { return this.unitType === 'unit'; }, // Required only if unitType is 'unit'
-    min: [1, 'Quantity must be at least 1 if pricing per unit.'],
-    validate: { // Ensure it's an integer if provided
-      validator: Number.isInteger,
-      message: '{VALUE} is not an integer value for quantity.'
-    }
+    // Required only if unitType is 'unit'
+    required: function() { return this.unitType === 'unit'; },
+    // Custom validation array
+    validate: [
+      {
+        // Validator 1: Ensure it's an integer IF a value is provided.
+        // Allows null/undefined when not required (i.e., unitType is 'size').
+        validator: function(v) {
+          if (this.unitType === 'size' && (v === null || v === undefined)) {
+            return true; // Allow null/undefined for 'size' type
+          }
+          return Number.isInteger(v); // Check if integer otherwise
+        },
+        message: props => `{VALUE} is not an integer value for quantity.`
+      },
+      {
+        // Validator 2: Ensure quantity is >= 1 ONLY if unitType is 'unit'.
+        validator: function(v) {
+          if (this.unitType !== 'unit') {
+            return true; // Skip this check if not 'unit' type
+          }
+          // For 'unit' type, value must be an integer >= 1
+          return v !== null && v !== undefined && Number.isInteger(v) && v >= 1;
+        },
+        message: props => `Quantity must be at least 1 if pricing per unit (received ${props.value}).`
+      }
+    ]
   },
   sizeMeasurement: { // Specific size/weight measurement (e.g., '5 lbs', 'Gallon')
     type: String,

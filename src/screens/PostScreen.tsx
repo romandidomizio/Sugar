@@ -36,6 +36,61 @@ import CustomMultiSelect from '../components/CustomMultiSelect';
 import axiosInstance from '../utils/axiosInstance'; 
 import axios from 'axios'; // Import the core axios object
 
+// --- Yup Validation Schema ---
+const ListingSchema = Yup.object().shape({
+  title: Yup.string().required('Title is required'),
+  producer: Yup.string().required('Producer/Brand is required'),
+  // Updated Price Validation:
+  price: Yup.string()
+    .required('Price is required')
+    .matches(/^\d+(\.\d{2})?$/, 'Price must be in 0.00 format (e.g., 5.00 or 10.50)') // Regex for ##.## format
+    .test('is-positive', 'Price must be positive', (value) => {
+      // Returns true if the value is a positive number
+      if (!value) return true; // Pass if empty, 'required' catches it
+      const num = parseFloat(value);
+      return !isNaN(num) && num > 0;
+    }),
+  description: Yup.string().required('Description is required'),
+  imageUri: Yup.string().required('Image is required'),
+  imageType: Yup.string().nullable(), // Added nullable for safety
+  imageName: Yup.string().nullable(), // Added nullable for safety
+  origin: Yup.string().required('Origin is required'),
+  certifications: Yup.array().of(Yup.string().required()).nullable(), // Array of strings, can be null
+  expiryDate: Yup.date().nullable(), // Optional field
+  unitType: Yup.string().required('Pricing unit type is required').oneOf(['unit', 'size']),
+  // Conditional validation for quantity
+  quantity: Yup.mixed().when('unitType', {
+    is: 'unit',
+    then: (schema) => schema
+      .required('Quantity is required when pricing per unit')
+      .test('is-integer', 'Quantity must be a whole number', (val) => 
+        val === null || val === undefined || val === '' || Number.isInteger(Number(val))
+      )
+      .test('is-positive-int', 'Quantity must be at least 1', (val) => 
+        val === null || val === undefined || val === '' || Number(val) >= 1
+      ),
+    otherwise: (schema) => schema.nullable(), // Allow null/empty if unitType is 'size'
+  }),
+  // Conditional validation for sizeMeasurement
+  sizeMeasurement: Yup.string().when('unitType', {
+    is: 'size',
+    then: (schema) => schema.required('Size/Measurement is required when pricing by size'),
+    otherwise: (schema) => schema.nullable().strip(), // Allow null/empty and remove if unitType is 'unit'
+  }),
+  contactMethod: Yup.string().required('Contact method is required').oneOf(['Direct Message', 'Phone Call', 'Text', 'Email']),
+  shareLocation: Yup.boolean(),
+  // Location object validation only required if shareLocation is true
+  location: Yup.object().nullable().when('shareLocation', {
+    is: true,
+    then: (schema) => schema.shape({
+        latitude: Yup.number().required(),
+        longitude: Yup.number().required(),
+      }).required('Location data is missing even though sharing is enabled.'),
+    otherwise: (schema) => schema.nullable(),
+  }),
+});
+
+// --- Component Interface ---
 interface FormValues {
   title: string;
   producer: string;
@@ -62,6 +117,7 @@ const originOptions = [
   { label: 'Imported', value: 'imported' },
   { label: 'Homegrown', value: 'homegrown' },
   { label: 'Grocery Store', value: 'grocery_store' },
+  { label: 'Garden', value: 'garden' },
   { label: 'Co-op', value: 'coop' },
 ];
 
@@ -101,6 +157,7 @@ const createStyles = (theme: MD3Theme) => StyleSheet.create({
   },
   input: {
     marginBottom: 10,
+    backgroundColor: theme.colors.background, // Use screen background color for inputs
   },
   prefixTextStyle: {
     color: theme.colors.onSurfaceVariant,
@@ -235,50 +292,6 @@ const createStyles = (theme: MD3Theme) => StyleSheet.create({
     marginTop: 10,
     color: theme.colors.onBackground,
   },
-});
-
-const ListingSchema = Yup.object().shape({
-  title: Yup.string().required('Title is required.'),
-  producer: Yup.string().required('Producer is required.'),
-  price: Yup.string()
-    .required('Price is required')
-    .matches(/^\$?(\d+(\.\d{2})?)$/, 'Price must be in $0.00 format (e.g., $10.50 or 5.00)')
-    .test('is-valid-number', 'Price must be a valid number', value => {
-      // Remove optional '$' before checking if it's a number
-      const numericValue = value?.startsWith('$') ? value.substring(1) : value;
-      return !isNaN(parseFloat(numericValue)) && isFinite(parseFloat(numericValue));
-    }),
-  description: Yup.string().required('Description is required.'),
-  imageUri: Yup.string().required('An image is required.'),
-  origin: Yup.string().required('Origin is required.'),
-  certifications: Yup.array().of(Yup.string()).ensure(),
-  unitType: Yup.string().oneOf(['unit', 'size'], 'Please select a unit type.').required('Unit type selection is required.'),
-  quantity: Yup.string()
-    .when('unitType', {
-      is: 'unit',
-      then: schema => schema
-        .required('Quantity is required when pricing per unit.')
-        .matches(/^[0-9]+$/, 'Quantity must be a whole number')
-        .test('positive', 'Quantity must be positive', (value) => parseInt(value || '0', 10) > 0),
-      otherwise: schema => schema.nullable().strip(), // Remove if not unit type
-    }),
-  sizeMeasurement: Yup.string()
-    .when('unitType', {
-      is: 'size',
-      then: schema => schema.required('Size/weight description is required when pricing by size.')
-                            .trim()
-                            .min(1, 'Size/weight description cannot be empty.'),
-      otherwise: schema => schema.nullable().strip(), // Remove if not size type
-    }),
-  expiryDate: Yup.date().nullable().required('Expiry date is required.').min(new Date(), 'Expiry date cannot be in the past.'),
-  contactMethod: Yup.string().required('Please select a preferred contact method'),
-  shareLocation: Yup.boolean(),
-  location: Yup.object()
-    .shape({
-      latitude: Yup.number().required(),
-      longitude: Yup.number().required(),
-    })
-    .nullable(), // Allow location to be null if not shared
 });
 
 const PostScreen: React.FC = () => {
@@ -517,32 +530,72 @@ const PostScreen: React.FC = () => {
 
     console.log(`[PostScreen] Sending ${apiMethod.toUpperCase()} request to ${apiUrl}`);
 
-    const formData = new FormData();
+    // --- Refined Logic based on Backend Validation --- 
+    let quantityValue: number | null = null;
+    let sizeMeasurementValue: string | null = null;
 
-    // Append the image file if it exists
-    if (values.imageUri) {
-      // Determine the file type and name
-      const uriParts = values.imageUri.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      const fileName = values.imageUri.split('/').pop();
-      
-      formData.append('image', {
-        uri: values.imageUri,
-        name: fileName || `photo.${fileType}`, // Use original name or default
-        type: `image/${fileType}`, // Adjust mime type if needed
-      } as any); // Type assertion needed for FormData append with file object
+    if (values.unitType === 'unit') {
+      // Parse quantity only when unitType is 'unit'
+      const parsedQuantity = parseInt(String(values.quantity), 10);
+      if (!isNaN(parsedQuantity)) {
+        quantityValue = parsedQuantity;
+      } else {
+        console.warn("Invalid quantity input for unit type 'unit', sending null.");
+        // Backend validation will handle required quantity for 'unit'
+        quantityValue = null;
+      }
+      sizeMeasurementValue = null; // Ensure sizeMeasurement is null for 'unit'
+    } else if (values.unitType === 'size') {
+      quantityValue = null; // Ensure quantity is null for 'size'
+      sizeMeasurementValue = values.sizeMeasurement; // Use the provided size measurement
     }
 
-    // Prepare listing details (excluding the image URI itself)
-    const listingData = { ...values };
-    if ('imageUri' in listingData) { // Check if property exists before deleting
-      delete (listingData as Partial<FormValues>).imageUri; // Safely delete optional property
-    }
+    // Attempt to parse price, default to 0 if invalid format
+    const priceValue = parseFloat(values.price);
 
-    // Append the stringified listing details
-    formData.append('listingDetails', JSON.stringify(listingData));
+    const listingData = {
+      title: values.title,
+      producer: values.producer,
+      price: !isNaN(priceValue) ? priceValue : 0, // Send parsed number or 0
+      description: values.description,
+      // Image details remain strings
+      imageUri: values.imageUri,
+      imageType: values.imageType,
+      imageName: values.imageName,
+      origin: values.origin,
+      certifications: values.certifications,
+      expiryDate: values.expiryDate, // Keep as Date object or null
+      unitType: values.unitType,
+      quantity: quantityValue, // Send null if unitType is 'size'
+      sizeMeasurement: sizeMeasurementValue, // Send null if unitType is 'unit'
+      contactMethod: values.contactMethod,
+      shareLocation: values.shareLocation,
+      location: values.location, // Use the location data obtained earlier
+    };
+
+    console.log('[PostScreen] Sending POST request to', `${API_BASE_URL}/api/user/listings`);
+    // console.log('[PostScreen] Prepared Listing Data:', listingData); // Uncomment to debug prepared data
 
     try {
+      const formData = new FormData();
+
+      // Append the image file if it exists
+      if (values.imageUri) {
+        // Determine the file type and name
+        const uriParts = values.imageUri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = values.imageUri.split('/').pop();
+        
+        formData.append('image', {
+          uri: values.imageUri,
+          name: fileName || `photo.${fileType}`, // Use original name or default
+          type: `image/${fileType}`, // Adjust mime type if needed
+        } as any); // Type assertion needed for FormData append with file object
+      }
+
+      // Append the stringified listing details
+      formData.append('listingDetails', JSON.stringify(listingData));
+
       const response = await axiosInstance[apiMethod](apiUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -602,7 +655,7 @@ const PostScreen: React.FC = () => {
         <Formik
           innerRef={formikRef}
           initialValues={defaultInitialValues}
-          validationSchema={ListingSchema}
+          validationSchema={ListingSchema} // Use the defined schema
           onSubmit={onSubmit}
           enableReinitialize={false}
         >
@@ -664,15 +717,15 @@ const PostScreen: React.FC = () => {
 
               {/* Price Input */}
               <TextInput
-                mode="outlined"
                 label="Price*"
-                value={values.price} // Now correctly typed as string
+                value={values.price}
                 onChangeText={handleChange('price')}
                 onBlur={handleBlur('price')}
-                keyboardType="decimal-pad" // Use decimal pad keyboard
                 error={submitCount > 0 && touched.price && !!errors.price}
                 style={styles.input}
-                left={<TextInput.Affix text="$ " />} // Add fixed dollar sign prefix
+                keyboardType="decimal-pad"
+                // Add dollar sign prefix using the 'left' prop
+                left={<TextInput.Affix text="$" textStyle={styles.prefixTextStyle} />}
               />
               <HelperText type="error" visible={submitCount > 0 && touched.price && !!errors.price}>
                 {errors.price}

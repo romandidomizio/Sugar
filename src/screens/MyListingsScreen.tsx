@@ -170,9 +170,16 @@ const MyListingsScreen: React.FC = () => {
     listItemDescription: {
       fontSize: 12,
     },
-    actionIconsContainer: {
+    actionIcon1Container: {
       flexDirection: 'row',
       alignItems: 'center',
+      marginRight: 14,
+      transform: [{ scale: 1.1 }],
+    },
+    actionIcon2Container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      transform: [{ scale: 1.1 }],
     },
     listContentContainer: {
       paddingBottom: 20, // Ensure space at the bottom
@@ -209,17 +216,18 @@ const MyListingsScreen: React.FC = () => {
           return <Avatar.Image {...props} size={50} source={imageSource} />;
         }}
         right={props => (
-          <View {...props} style={styles.actionIconsContainer}>
+          <><View {...props} style={styles.actionIcon1Container}>
             {/* Wrap edit icon in TouchableOpacity to make it pressable */}
             {/* Corrected navigation: Navigate to EditListing screen in the Root Stack */}
-            <TouchableOpacity onPress={() => navigation.navigate('EditListing', { listingId: item._id })}> 
+            <TouchableOpacity onPress={() => navigation.navigate('EditListing', { listingId: item._id })}>
               <List.Icon icon="pencil-outline" />
             </TouchableOpacity>
-            {/* Wrap delete icon in TouchableOpacity to make it pressable */}
-            <TouchableOpacity onPress={() => handleDeleteListing(item._id)}>
-              <List.Icon icon="delete-outline" color={theme.colors.error} />
-            </TouchableOpacity>
-          </View>
+          </View><View {...props} style={styles.actionIcon2Container}>
+              {/* Wrap delete icon in TouchableOpacity to make it pressable */}
+              <TouchableOpacity onPress={() => handleDeleteListing(item._id)}>
+                <List.Icon icon="delete-outline" color={theme.colors.error} />
+              </TouchableOpacity>
+            </View></>
         )}
         style={styles.listItem}
         titleStyle={styles.listItemTitle}

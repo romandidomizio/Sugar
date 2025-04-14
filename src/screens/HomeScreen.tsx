@@ -77,7 +77,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   // State for modal visibility and selected item
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
-  const [locationName, setLocationName] = useState<string | null>(null); // State for reverse geocoded location name
+
+  // --- Add State for Modal Location City and Geocoding Status ---
+  const [modalLocationCity, setModalLocationCity] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+  // --------------------------------------------------------------
 
   // --- Data Fetching Function ---
   const fetchMarketplaceItems = useCallback(async () => {
@@ -102,6 +106,36 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       setLoading(false);
     }
   }, []); // Empty dependency array, fetch logic doesn't depend on component state here
+
+  // --- Function to fetch city name from coordinates ---
+  const fetchCityName = async (coordinates: [number, number] | undefined) => {
+    if (!coordinates || coordinates.length !== 2) {
+      setModalLocationCity('Location data unavailable');
+      return;
+    }
+
+    // Coordinates are [longitude, latitude]
+    const latitude = coordinates[1];
+    const longitude = coordinates[0];
+
+    setIsGeocoding(true);
+    setModalLocationCity(null); // Clear previous city
+
+    try {
+      const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (result.length > 0 && result[0].city) {
+        setModalLocationCity(result[0].city);
+      } else {
+        setModalLocationCity('Unknown Location');
+      }
+    } catch (error) {
+      console.error('Error during reverse geocoding:', error);
+      setModalLocationCity('Could not fetch location');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+  // ------------------------------------------------------
 
   // --- Use Focus Effect for Auto-Refresh ---
   useFocusEffect(
@@ -131,14 +165,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleCardPress = (item: MarketplaceItem) => {
     setSelectedItem(item);
     setModalVisible(true);
-    setLocationName(null); // Reset location name when opening modal
-    // Log the selected item for debugging
-    console.log('Selected Item:', item);
+    setModalLocationCity(null); // Reset city on new modal open
+    setIsGeocoding(false);    // Reset geocoding status
+
+    // Check if location is shared and coordinates exist, then fetch city
+    if (item.shareLocation && item.location?.coordinates) {
+      fetchCityName(item.location.coordinates);
+    }
   };
 
   const handleModalDismiss = () => {
     setModalVisible(false);
-    setLocationName(null); // Clear location name on dismiss
+    setModalLocationCity(null); // Clear city on dismiss
     setSelectedItem(null); // Clear selected item as well
   };
 
@@ -293,95 +331,85 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   // Render item function for FlatList
   const renderItem = ({ item }: { item: MarketplaceItem }) => {
-    console.log(`[renderItem - ${item._id}] item.imageUri:`, item.imageUri); // Log raw imageUri
     const imageUri = item.imageUri ? `${API_BASE_URL}/${item.imageUri.startsWith('/') ? item.imageUri.substring(1) : item.imageUri}` : null;
-    console.log(`[renderItem - ${item._id}] Constructed imageUri:`, imageUri); // Log the final URI
+
+    // --- Format Price String Components --- START
+    let priceAmount = '';
+    let priceUnit = '';
+    if (item.price) {
+      priceAmount = `$${Number(item.price).toFixed(2)}`;
+      if (item.unitType === 'unit') {
+        priceUnit = `/ unit`; // Keep it simple, quantity shown in modal
+      } else if (item.unitType === 'size' && item.sizeMeasurement) {
+        priceUnit = `/ ${item.sizeMeasurement}`;
+      }
+    }
+    // --- Format Price String Components --- END
+
+    // Use require for the fallback image source
+    const fallbackImageSource = require('../../assets/icon.png');
+    const imageSource = imageUri ? { uri: imageUri } : fallbackImageSource;
 
     return (
-      // Wrap Card in Pressable to trigger modal
-      <Pressable onPress={() => handleCardPress(item)}>
-        <Card style={styles.card}>
-          {/* New container specifically for clipping the image */}
-          <View style={styles.imageClippingContainer}>
-            {/* Existing container for image content */} 
-            {imageUri ? (
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={styles.cardImage}
-                />
-              </View>
-            ) : (
-              <View style={[styles.imageContainer, styles.noImageContainer]}>
-                <Text style={styles.noImageText}>No image provided</Text>
-              </View>
-            )}
-          </View>
-          {/* Content Area (sibling to the clipping container) */} 
-          <Card.Content style={styles.cardContent}>
-            {/* Title, Subtitle, Desc... */} 
-            <Text variant="titleMedium" numberOfLines={1} style={styles.cardTitle}>
-              {item.title}
-            </Text>
-            <Text variant="bodySmall" numberOfLines={1} style={styles.cardSubtitle}>
-              {`By: ${item.producer}`}
-            </Text>
-            <Text variant="bodySmall" numberOfLines={2} style={styles.cardDescription}>
-              {item.description}
-            </Text>
+      // Wrap custom View in Pressable to trigger modal
+      <Pressable onPress={() => handleCardPress(item)}
+                 style={({ pressed }) => [ { opacity: pressed ? 0.8 : 1.0 } ]} // Basic press feedback
+      >
+        {/* Shadow Wrapper View - Apply shadow and margins here */}
+        <View style={styles.shadowWrapper}>
+          {/* Custom Card Container using View - Handles content, bg, border radius, overflow */}
+          <View style={styles.customCardContainer}>
+            {/* Custom Cover Image */}
+            <Image 
+              source={imageSource} 
+              style={styles.customCardCoverImage}
+              resizeMode='cover' // Ensure image covers the area
+            />
 
-            {/* --- Expiration Date --- */} 
-            {item.expiryDate && typeof item.expiryDate === 'string' && item.expiryDate.length > 0 && (
-              <Text variant="labelSmall" style={styles.cardExpiration}>
-                Expires: {(() => {
-                  try {
-                    const date = new Date(item.expiryDate);
-                    if (isNaN(date.getTime())) { return null; }
-                    return date.toLocaleDateString();
-                  } catch (e) {
-                    return null;
-                  }
-                })() || 'Invalid/Error'}
+            {/* Custom Card Content Area */}
+            <View style={styles.customCardContent}>
+              {/* Top Row: Title and Price (Keep existing structure) */}
+              <View style={styles.cardTopRow}>
+                <Text variant="titleMedium" style={styles.cardTitle} numberOfLines={1} ellipsizeMode='tail'>
+                  {item.title}
+                </Text>
+                {/* Price Container */}
+                <View style={styles.cardPriceContainer}>
+                  <Text style={styles.cardPriceAmount}>{priceAmount}</Text>
+                  <Text style={styles.cardPriceUnit}>{priceUnit}</Text>
+                </View>
+              </View>
+
+              {/* Middle Rows: Producer and Description */}
+              <Text variant="bodyMedium" style={styles.cardProducer} numberOfLines={1} ellipsizeMode='tail'>
+                {item.producer}
               </Text>
-            )}
-          </Card.Content>
-        </Card>
+              <Text variant="bodySmall" style={styles.cardDescription} numberOfLines={2} ellipsizeMode='tail'>
+                {item.description}
+              </Text>
+
+              {/* Bottom Row: Expiration Date (aligned right) */}
+              <View style={styles.cardBottomRow}>
+                {item.expiryDate && typeof item.expiryDate === 'string' && item.expiryDate.length > 0 && (
+                  <Text variant="labelSmall" style={styles.cardExpiration}>
+                    Expires: {(() => {
+                      try {
+                        const date = new Date(item.expiryDate);
+                        if (isNaN(date.getTime())) { return null; }
+                        return date.toLocaleDateString();
+                      } catch (e) {
+                        return null;
+                      }
+                    })() || 'Invalid/Error'}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
       </Pressable>
     );
   };
-
-  // --- Effect for Reverse Geocoding --- 
-  useEffect(() => {
-    // Function to perform reverse geocoding
-    const fetchLocationName = async () => {
-      if (selectedItem?.shareLocation && selectedItem.location?.coordinates) {
-        try {
-          // Extract coordinates (longitude, latitude from GeoJSON standard)
-          const [longitude, latitude] = selectedItem.location.coordinates;
-          // Perform reverse geocoding
-          const result = await Location.reverseGeocodeAsync({ latitude, longitude });
-          // Extract city or locality from the first result
-          if (result.length > 0) {
-            const { city, region, postalCode } = result[0];
-            const name = `${city ? city + ', ' : ''}${region || ''} ${postalCode || ''}`.trim();
-            setLocationName(name || 'Location name not found'); // Set the location name state
-          } else {
-            setLocationName('Location name not found');
-          }
-        } catch (error) {
-          console.error('Reverse geocoding failed:', error);
-          setLocationName('Could not fetch location'); // Handle potential errors
-        }
-      } else if (selectedItem) {
-        // If location sharing is off or no coordinates, set appropriate message
-        setLocationName('Location not shared');
-      }
-    };
-
-    if (modalVisible && selectedItem) {
-      fetchLocationName(); // Call the geocoding function when modal is visible and item is selected
-    }
-  }, [selectedItem, modalVisible]); // Re-run effect when selectedItem or modal visibility changes
 
   // --- Define Styles Inside Component to Access Theme --- 
   const styles = StyleSheet.create({
@@ -399,70 +427,83 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       marginLeft: 10,
       marginBottom: 5, // Space below title
     },
-    card: {
-      marginHorizontal: 10, // Restore margin
-      marginTop: 8, // Reduce margin slightly
-      width: 180, // Reduce width
-      height: 240, // Reduce height
-      elevation: 3, // Restore shadow
-      borderRadius: theme.roundness * 3, // Restore radius
-      marginBottom: 8, // Reduce margin slightly
-      backgroundColor: theme.colors.surface, // Keep background
+    // --- Styles for Custom Card --- START
+    shadowWrapper: { // Wrapper to handle shadow separately from overflow:hidden
+      marginVertical: 5,
+      marginHorizontal: 5,
+      // iOS Shadow Properties
+      shadowColor: '#000', 
+      shadowOffset: { width: 0, height: 1 }, 
+      shadowOpacity: 0.30, 
+      shadowRadius: 2.00,
     },
-    imageClippingContainer: {
-      borderTopLeftRadius: theme.roundness * 3, // Match card radius
-      borderTopRightRadius: theme.roundness * 3, // Match card radius
-      overflow: 'hidden', // Apply clipping here
+    customCardContainer: {
+      width: 200, 
+      height: 250, 
+      backgroundColor: theme.colors.surface, 
+      borderRadius: 8, 
+      overflow: 'hidden', // Keep for clipping image corners
+      // Android Shadow
+      elevation: 8, 
     },
-    imageContainer: {
-      height: 120, // Reduce image height proportionally
+    customCardCoverImage: {
+      width: '100%', // Fill container width
+      height: 130, // Keep desired height
+      // Apply radius only to top corners to match container
+      borderTopLeftRadius: 8, 
+      borderTopRightRadius: 8,
     },
-    cardImage: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'cover', // Cover ensures the image fills, might crop
+    customCardContent: {
+      paddingVertical: 8, // Adjusted vertical padding
+      paddingHorizontal: 12, // Keep horizontal padding
     },
-    noImageContainer: {
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    noImageText: {
-      color: theme.colors.onSurfaceVariant, // Use theme color
-      fontSize: 12,
-    },
-    cardContent: {
-      padding: 6, // Reduce padding further
-      flexGrow: 1, // Allow content to fill remaining space
-    },
+    // --- Styles for Custom Card --- END
+
     cardTitle: {
-      marginBottom: 2, // Increase space below title
-      fontWeight: 'bold', // Make title stand out
-      color: theme.colors.onSurface, // Use theme color
+      fontWeight: 'bold',
+      flex: 1, // Allow title to take available space
+      marginRight: 10, // Add space between title and price
     },
-    cardSubtitle: {
-      marginBottom: 6, // Increase space below subtitle
-      color: theme.colors.onSurfaceVariant, // Use theme color
+    cardProducer: { // Added back to fix lint error
+      marginTop: -2, // Space below title/price row
+      marginBottom: 4, // Slightly reduce space below title/price row
     },
     cardDescription: {
-      fontSize: 12,
-      marginBottom: 20, // Increase space below description
-      color: theme.colors.onSurfaceVariant, // Use theme color
+      marginTop: 4, // Keep space below producer
+      color: theme.colors.onSurfaceVariant, // Slightly muted color for description
     },
     cardExpiration: {
-      fontSize: 13, // Make text slightly larger
-      fontWeight: '500', // Medium weight
-      color: theme.colors.primary, // Use primary theme color
-      textAlign: 'right', // Align expiration to the right?
+      marginTop: 8,
+      color: theme.colors.onSurfaceVariant, // Use a less prominent color
+      fontSize: 10,
     },
-    emptySectionText: {
-      marginLeft: 15, // Align with section padding
-      fontStyle: 'italic',
-      color: theme.colors.onSurfaceVariant, // Use theme color
+    cardTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start', // Align items to the top
+      marginBottom: 4, // Space below the top row
     },
-    divider: {
-      marginVertical: 10, // Space around the divider
-      backgroundColor: theme.colors.outlineVariant, // Use a subtle theme color
+    cardPriceContainer: {
+      flexDirection: 'row', // Keep price parts together
+      alignItems: 'baseline', // Align text nicely
     },
+    cardPriceAmount: {
+      fontSize: 16, // Adjust size as needed
+      fontWeight: 'bold',
+      color: theme.colors.primary, // Use primary green color
+    },
+    cardPriceUnit: {
+      fontSize: 12, // Smaller size for the unit
+      fontWeight: 'normal', // Thinner font
+      color: theme.colors.primary, // Use primary green color
+      marginLeft: 2, // Small space between amount and unit
+    },
+    cardBottomRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end', // Align expiration to the right
+      marginTop: 6, // Added space above the expiration date
+    },
+    // --- Styles for Loading/Error/Empty States --- START
     centeredMessageContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -477,8 +518,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     retryButton: {
       marginTop: 10,
     },
-    // --- Modal Styles --- 
+    emptySectionText: {
+      marginLeft: 15, // Align with section padding
+      fontStyle: 'italic',
+      color: theme.colors.onSurfaceVariant, // Use theme color
+    },
+    divider: {
+      marginVertical: 10, // Space around the divider
+      backgroundColor: theme.colors.outlineVariant, // Use a subtle theme color
+    },
+    // --- Styles for Loading/Error/Empty States --- END
+
+    // --- Modal Styles --- //
     modalContainer: { // Style for the Modal wrapper itself
+      padding: 20, // Padding around the Surface
+      margin: 20, // Margin from screen edges
+      marginTop: 50, // Add margin top
+      marginBottom: 50, // Add margin bottom
+    },
+    modalContentContainer: {
+      backgroundColor: theme.colors.surface, // Use theme surface color for modal background
       padding: 20, // Padding around the Surface
       margin: 20, // Margin from screen edges
       marginTop: 50, // Add margin top
@@ -504,6 +563,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       alignSelf: 'center',
       marginBottom: 0, // Space below image (adjust if needed after moving)
       borderRadius: 8, // Optional: rounded corners
+      padding: 10,
     },
     detailText: {
       fontSize: 16,
@@ -519,6 +579,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     modalButton: {
       flex: 1, // Make buttons share space
       marginHorizontal: 5, // Add space between buttons
+    },
+    modalLocationContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center', // Vertically align items in the row
+      marginTop: 8, // Add some space above the location info
+      minHeight: 24, // Ensure consistent height even when loading
+    },
+    modalLabel: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    modalValue: {
+      fontSize: 16,
     },
   });
 
@@ -617,11 +691,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   <Text style={styles.detailText}>Origin: {formatOrigin(selectedItem.origin)}</Text>
                   <Text style={styles.detailText}>Certifications: {cleanAndFormatCertifications(selectedItem.certifications)}</Text>
                   <Text style={styles.detailText}>Expires: {selectedItem.expiryDate ? new Date(selectedItem.expiryDate).toLocaleDateString() : 'N/A'}</Text>
-                  <Text style={styles.detailText}>
-                    Location: {selectedItem.shareLocation 
-                      ? (locationName ?? 'Loading location...') 
-                      : 'Location not shared'}
-                  </Text>
+                  {/* --- Display Location City Name --- */} 
+                  {selectedItem.shareLocation && (
+                    <View style={styles.modalLocationContainer}>
+                      <Text variant="bodyMedium" style={styles.modalLabel}>Location: </Text>
+                      {isGeocoding ? (
+                        <ActivityIndicator size="small" />
+                      ) : (
+                        <Text variant="bodyMedium" style={styles.modalValue}>
+                          {modalLocationCity || 'Not available'}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                  {/* ----------------------------------- */} 
                   {/* Omitted: _id, userId, createdAt, contactInfo */}
                 </ScrollView>
 
