@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
   },  
   loginButton: {
     flex: 1,
+    marginRight: 6, 
   },
   registerButton: {
     flex: 1,
