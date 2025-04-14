@@ -6,6 +6,9 @@ const rateLimit = require('express-rate-limit');
 const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
 const mongoose = require('mongoose');
+
+// Import Messaging Routes
+const messagingRoutes = require('./routes/messages');
 const path = require('path'); // Import the path module
 
 const app = express();
@@ -68,6 +71,7 @@ const foodItemsRoutes = require('./routes/foodItems');
 const listingRoutes = require('./routes/listingRoutes'); // Import listing routes
 app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
+app.use('/api/messages', messagingRoutes);
 app.use('/api/listings', listingRoutes); // Mount listing routes for public access
 
 // Apply authMiddleware selectively to routes that require authentication

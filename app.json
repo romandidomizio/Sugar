@@ -21,7 +21,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/sugar.png"
+      "favicon": "./assets/favicon_sugar_logo.png"
     },
     "extra": {
       "eas": {

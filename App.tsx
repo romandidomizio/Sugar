@@ -2,28 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
-import { View, Image, StyleSheet } from 'react-native';
+import * as Font from 'expo-font';
+import { Asset } from 'expo-asset'; //npx expo install expo-asset
 
 import { SugarTheme } from './src/theme/SugarTheme';
 import { AppProvider } from './src/contexts/AppContext';
 import { CartProvider } from './src/contexts/CartContext';
 import MainNavigator from './src/navigation/MainNavigator';
-import LoadingScreen from './src/screens/WelcomeScreen';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
 
-  const handleLoadingFinish = () => setIsReady(true);
-
   useEffect(() => {
-    const init = async () => {
-      // setTimeout(() => setIsReady(true), 3000);
-    };
+    (async () => {
+      try {
+        //pre-load fonts
+        await Font.loadAsync({
+          'Hoefler-Regular': require('./assets/Fonts/Hoefler-Regular.ttf'),
+          'Hoefler-Bold': require('./assets/Fonts/Hoefler-Bold.otf'),
+          'Hoefler-Italic': require('./assets/Fonts/Hoefler-Italic.ttf'),
+        });
 
-    init();
+        //pre-load gif logo
+        await Asset.loadAsync([require('./assets/sugar_logo.gif')]);
+        await Asset.loadAsync([require('./assets/sugar.png')]);
+
+        // Add additional setup here check auth?
+      } catch (e) {
+        console.warn('Asset loading failed', e);
+      } finally {
+        setIsReady(true);
+      }
+    })();
   }, []);
-
-  if (!isReady) return <LoadingScreen onFinish={handleLoadingFinish} />;
 
   return (
     <SafeAreaProvider>

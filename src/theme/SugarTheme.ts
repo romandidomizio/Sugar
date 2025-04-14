@@ -1,5 +1,4 @@
 import { MD3LightTheme, MD3Theme, configureFonts } from 'react-native-paper';
-import { Platform } from 'react-native';
 
 // Expanded Green Color Palette
 const greenPalette = {
@@ -23,13 +22,31 @@ const greenPalette = {
   onSurface: '#000000',
 };
 
+const fontConfig = {
+  fontFamily: 'Hoefler-Regular',
+  fonts: {
+    regular: {
+      fontFamily: 'Hoefler-Regular',
+      fontWeight: 'normal',
+    },
+    bold: {
+      fontFamily: 'Hoefler-Bold',
+      fontWeight: 'normal',
+    },
+    italic: {
+      fontFamily: 'Hoefler-Italic',
+      fontWeight: 'normal',
+    },
+  },
+};
+
 export const SugarTheme: MD3Theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
     ...greenPalette,
   },
-  fonts: configureFonts({ isV3: true }),
+  fonts: configureFonts({ config: fontConfig, isV3: true }),
   roundness: 8,
   animation: {
     scale: 1.0,
