@@ -89,14 +89,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setError(null);
     try {
       // Fetching all items for the general marketplace
-      const response = await axios.get<MarketplaceItem[]>(`${API_BASE_URL}/api/marketplace`);
+      const response = await axios.get<MarketplaceItem[]>(`${API_BASE_URL}/api/marketplace`); // Expect array directly
 
-      // Sort items by creation date, newest first
-      const sortedItems = response.data.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      
-      setMarketplaceItems(sortedItems);
+      // Check if the response data itself is an array
+      if (response.data && Array.isArray(response.data)) {
+        // Sort the array directly from the response data
+        const sortedItems = response.data.sort((a, b) => {
+          // Ensure createdAt exists and handle potential invalid dates
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0; 
+          return dateB - dateA; // Sort descending (newest first)
+        });
+        setMarketplaceItems(sortedItems);
+      } else {
+        console.error('API response is not an array:', response.data);
+        setError('Failed to load listings due to unexpected data format.');
+        setMarketplaceItems([]); // Set to empty array or handle as appropriate
+      }
     } catch (err: any) {
       console.error('Error fetching marketplace items:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch marketplace items.';
