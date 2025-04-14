@@ -1,380 +1,444 @@
 # Sugar Development README
 
-## Overview
+## 1. Overview
 Sugar is a hyper-local online marketplace for buying and selling food. This project consists of a backend API built with Node.js and Express, a MongoDB database hosted on MongoDB Atlas, and a frontend developed using React Native with Expo.
 
-## Tech Stack
-- **Frontend:** React Native, Expo, React Native Paper
+## 2. Tech Stack
+- **Frontend:** React Native, Expo, TypeScript, React Navigation
 - **Backend:** Node.js, Express
 - **Database:** MongoDB Atlas
+- **UI Library:** React Native Paper (Material Design 3)
+- **State Management:** React Context API
+- **API Client:** Axios
+- **Forms:** Formik, Yup (for validation)
+- **Image Handling:** expo-image-picker
 - **Authentication:** JSON Web Tokens (JWT)
-- **Deployment:** Heroku
+- **Deployment:** Heroku (Backend), Expo Application Services (EAS) potentially for Frontend builds
 - **CI/CD:** GitHub Actions
-- **Design System:** Material Design 3 via React Native Paper
+- **Linting/Formatting:** ESLint, Prettier
 
-### Design Philosophy: React Native Paper
-We use React Native Paper as our primary UI component library to ensure:
-- Consistent, modern design across all components
-- Material Design 3 compliance
-- Responsive and adaptive UI
-- Easy theming and customization
-- Accessibility and cross-platform compatibility
+## 3. Prerequisites
+- Node.js (v14 or later recommended)
+- npm (usually comes with Node.js)
+- MongoDB Atlas account (free tier recommended for development)
+- Expo Go app installed on your mobile device (for testing)
+- Git
 
-#### Key Design Principles
-- **Unified Styling**: All UI elements use Paper components
-- **Custom Theming**: Implemented via `SugarTheme.ts`
-- **Variant Support**: Components support multiple states and styles
-- **Responsive Design**: Adaptive to different screen sizes and platforms
+## 4. Setup Instructions
 
-## Prerequisites
-- Node.js (v14 or later)
-- npm
-- MongoDB Atlas account (free tier)
-- Heroku account (free tier)
-- Expo Go app for testing
-
-## Setup Instructions
-
-### 1. Clone the Repository
-- Clone the repository from GitHub:
-  ```bash
-  git clone https://github.com/yourusername/sugar.git
-  cd sugar
-  ```
-
-### 2. Install Dependencies
-- Navigate to the backend directory and install dependencies:
-  ```bash
-  cd backend
-  npm install
-  ```
-- Navigate to the frontend directory in a separate terminal and install dependencies:
-  ```bash
-  cd src
-  npm install
-  ```
-
-### 3. Configure Environment Variables
-
-#### Backend Environment Configuration
-
-Ensure your `.env` file in the `backend` directory matches the following configuration exactly:
-
+### 4.1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/sugar.git # Replace with your repo URL
+cd sugar
 ```
+
+### 4.2. Backend Setup (`/backend` directory)
+
+**a) Install Dependencies:**
+```bash
+cd backend
+npm install
+```
+
+**b) Configure Environment Variables:**
+Create a `.env` file in the `/backend` directory with the following content. **Ensure this file is added to `.gitignore`.**
+
+```dotenv
 PORT=3000
-JWT_SECRET=ncdewfh347456438r74r3ig2gdgwtsfqtfeh43k6jgnfnvwy61r42e1rsoefmo595699347yegegqggqhndfkkfkfnr05
+JWT_SECRET=YOUR_STRONG_RANDOM_SECRET_HERE # Replace with a strong, unique secret
 NODE_ENV=development
-MONGODB_URI=mongodb+srv://dev-user:sugardevuser1@sugarcluster.mssvz.mongodb.net/sugar_marketplace?retryWrites=true&w=majority&appName=SugarCluster
-JWT_EXPIRATION=1h
+MONGODB_URI=mongodb+srv://dev-user:sugardevuser1@sugarcluster.mssvz.mongodb.net/sugar_marketplace?retryWrites=true&w=majority&appName=SugarCluster # Replace with your MongoDB Atlas connection string
+JWT_EXPIRATION=1h # Or your preferred token expiration
 ```
+*   Replace `MONGODB_URI` with your actual connection string from MongoDB Atlas.
+*   Replace `JWT_SECRET` with a secure, randomly generated string.
 
-#### Frontend Environment Configuration
+### 4.3. Frontend Setup (Root `/` directory)
 
-Create a `.env` file in the root of the project with the following content. Change `DEVICE_TYPE` to `android` if you are not using macOS:
-
+**a) Install Dependencies:**
+Navigate back to the project root directory if you are in `/backend`.
+```bash
+cd ..
+npm install
 ```
-DEVICE_TYPE=mac  # Set to 'android' or 'mac'
-# EXPO_PUBLIC_API_URL=http://your-api-url.com/api/users
+*   **Troubleshooting Tip:** If you encounter peer dependency conflicts, especially after adding new libraries, try running:
+    ```bash
+    npm install --legacy-peer-deps
+    ```
+
+**b) Configure Environment Variables:**
+Create a `.env` file in the project **root** directory (`/`) with the following content. **Ensure this file is added to `.gitignore`.**
+
+```dotenv
+# Base URL for the backend API
+API_BASE_URL=http://localhost:3000 # Use your machine's local IP if testing on a physical device: http://[YOUR_LOCAL_IP]:3000
+
+# Optional: Specify device type if needed for specific logic (not currently used)
+# DEVICE_TYPE=mac # or 'android'
 ```
+*   Replace `localhost` with your computer's local network IP address if you are running the app on a physical device using Expo Go. You can usually find this via `ipconfig` (Windows) or `ifconfig` (macOS/Linux).
 
-These configurations ensure that the application runs correctly across different development environments.
+## 5. Running the Application
 
-### 4. Start the Development Servers
-- Start the backend server:
-  ```bash
-  cd backend
-  node server.js
-  ```
-- Open another terminal and navigate to the root directory:
-  ```bash
-  npx expo start
-  ```
-- Choose the simulator of your choice to run the app.
+You'll need two separate terminal windows.
 
-## Component Playground 🎨
+**Terminal 1: Start the Backend Server**
+```bash
+cd backend
+node server.js
+# Or use nodemon if installed: nodemon server.js
+```
+The backend should start, typically on port 3000.
 
-### Purpose
-The Component Playground is a powerful development tool designed to:
-- Rapidly prototype and test UI components
-- Showcase component variations
-- Facilitate design reviews
-- Aid in component development and testing
+**Terminal 2: Start the Frontend Development Server**
+```bash
+# Ensure you are in the project root directory
+npx expo start
+```
+This will start the Metro bundler. Scan the QR code shown in the terminal using the Expo Go app on your device, or press `i` for iOS simulator / `a` for Android emulator if configured.
 
-### Key Features
-- **Component Visualization**: Display multiple variants of components
-- **Interactive Testing**: Simulate different states and interactions
-- **Development Navigation**: Easy screen switching for rapid iteration
+## 6. Core Application Features
 
-### Navigation During Development
+This section details the primary user-facing features implemented in the Sugar application.
 
-#### Screen Navigation
-During development, all screens are configured with:
-- Direct navigation buttons
-- Back navigation buttons
-- Consistent header styling
+### 6.1. Marketplace (`HomeScreen.tsx`)
 
-#### How to Use Navigation
-1. **Component Playground Screen**
-   - Provides buttons to navigate to all other screens
-   - Demonstrates different component variants
-   - Allows quick access to different parts of the app
+**Purpose:** Provides a central view for users to browse food items listed by others in the community. It separates items into "Free" and "Other Items" categories.
 
-2. **Screen-Specific Navigation**
-   - Each screen has a "Back" button to return to the previous screen
-   - Buttons to navigate between screens for quick testing
+**Location:** `src/screens/HomeScreen.tsx`
 
-### Component Playground Workflow
+**Data Flow:**
+1.  **Fetching:** On screen focus (`useFocusEffect`), fetches all available listings via a `GET` request to `${API_BASE_URL}/api/marketplace`.
+2.  **Sorting:** Fetched items are sorted by creation date (`createdAt`) in descending order (newest first).
+3.  **Filtering:** Items are categorized based on price:
+    *   **Free Items:** Listings where the `price` is exactly "$0.00" or "0.00".
+    *   **Other Items:** All other priced listings.
+4.  **Display:** Uses two separate horizontal `FlatList` components to display cards for "Free Items" and "Other Items". If no items are available in a category or overall, appropriate messages are displayed.
 
-#### Adding Components to Playground
-1. Open `src/screens/ComponentPlaygroundScreen.tsx`
-2. Import your new component
-3. Add a section to showcase different variants:
+**UI Components & Interaction:**
+*   **Item Card (`Card`):** Displays a preview of each listing (Image, Title, Producer, Formatted Price). Uses `react-native-paper`.
+*   **Modal (`Modal`, `Portal`):** Triggered by pressing an item card (`handleCardPress`). Displays detailed information about the selected item (`selectedItem`).
+    *   **Modal Content:** Shows Title, Image, Producer, Price (formatted), Description, Origin, Certifications, Expiry Date, Location (reverse geocoded name if `shareLocation` is true).
+    *   **Modal Dismiss:** Closes when tapped outside or via `handleModalDismiss`.
+*   **Headers:** "Free Items" and "Other Items" headers use `Text` with `variant="headlineSmall"` and `color={theme.colors.primary}` for consistency.
+
+**Key Data Attributes (`MarketplaceItem` Interface):**
+This interface (`src/screens/HomeScreen.tsx`) defines the structure of items fetched from the marketplace. Key attributes relevant for **checkout functionality** include:
+*   `_id`: (string) Unique identifier for the listing. **Crucial for identifying the item in the cart/checkout.**
+*   `title`: (string) Name of the item.
+*   `price`: (string) The listed price (e.g., "$10.00", "Free"). **Needs parsing for calculations.** Use the `parsePrice` helper in `HomeScreen` as a reference.
+*   `unitType`: (string, optional: 'unit' | 'size') Indicates if the price is per unit or based on size/weight.
+*   `sizeMeasurement`: (string, optional) Specific size/weight details (e.g., "lb", "kg", "oz") if `unitType` is 'size'.
+*   `quantity`: (number) *Note: This field is defined in the backend model but might not be directly fetched/displayed on the `HomeScreen` card/modal currently. It's essential for managing stock during checkout and should be fetched/available.*
+*   `userId`: (string) The ID of the user who listed the item. **Needed for messaging and potentially for seller information during checkout.**
+
+**Integration Points & Building Upon:**
+*   **Checkout:**
+    *   The "Add to Cart" button (`handleAddToCart`) uses the `useCart` context hook (`src/contexts/CartContext.tsx`) to add the `selectedItem` to the cart state.
+    *   The cart context likely needs enhancement to handle quantity selection and potentially fetching full item details (including available `quantity`) when an item is added.
+    *   The checkout process will need to retrieve items from the `CartContext`, use their `_id`, `price`, `quantity`, etc., and interact with a backend checkout/order endpoint.
+*   **Messaging:**
+    *   The "Message Seller" button (`handleMessageSeller`) in the modal currently logs the `selectedItem.userId`.
+    *   **To build the messaging feature:** This handler should be modified to navigate to a new `ChatScreen` or similar component.
+    *   It **must** pass the `selectedItem.userId` (the seller's ID) and potentially the `selectedItem._id` (listing ID) as navigation parameters to the chat screen to initiate or resume a conversation with the correct seller about the specific item. The authenticated user's ID can be retrieved from `AuthContext`.
+
+### 6.2. Post New Listing (`PostScreen.tsx`)
+
+**Purpose:** Allows authenticated users to create new food listings to be displayed on the marketplace.
+
+**Location:** `src/screens/PostScreen.tsx`
+
+**Workflow:**
+1.  **Authentication:** Screen access might be restricted to logged-in users (handled via navigation setup).
+2.  **Form:** Uses `Formik` for form state management and `Yup` for validation.
+3.  **Image Selection:** Users can optionally select an image via the "Select Image" button (`handleChooseImageSource`), which presents an `Alert` to choose between taking a photo (`takePhoto`) or selecting from the library (`selectImage`). Uses `expo-image-picker`.
+4.  **Image Upload:** If a *new* image is selected:
+    *   It's uploaded *first* using `FormData` via a `POST` request to `${API_BASE_URL}/api/fooditems/upload-image`. This requires the auth token.
+    *   The backend responds with the relative path of the stored image (e.g., `uploads/image-123.jpg`).
+5.  **Form Submission (`handleSubmit`):**
+    *   Form data (including the image path received from the upload step, if any) is compiled.
+    *   Location coordinates are fetched using `expo-location` if `shareLocation` is true.
+    *   Data is sent via a `POST` request to `${API_BASE_URL}/api/fooditems`, including the auth token in the headers.
+    *   On success, navigates back or to `MyListingsScreen`. Errors are displayed.
+
+**Form Fields & Validation (`validationSchema`):**
+*   `title`: (string, required)
+*   `producer`: (string, required)
+*   `price`: (string, required) Validated using regex `/^(\$?(0(\.\d{1,2})?|([1-9]\d*(\.\d{1,2})?))|Free)$/i` to match formats like `$10.00`, `10.00`, `0.50`, `$0.50`, `0`, `$0`, or `Free` (case-insensitive). The `$` prefix is added visually using `TextInput.Affix` and is not part of the stored/validated value unless typed by the user (validation allows optional $). `keyboardType="decimal-pad"`.
+*   `unitType`: (enum: 'unit' | 'size', required) Radio buttons control conditional rendering of `sizeMeasurement`.
+*   `quantity`: (string representing number, required) Must be a positive integer. `keyboardType="numeric"`.
+*   `sizeMeasurement`: (string, required *if* `unitType` is 'size')
+*   `description`: (string, optional)
+*   `origin`: (string, optional)
+*   `certifications`: (array of strings, optional) Checkbox group.
+*   `contactMethod`: (enum: 'Email' | 'Phone' | 'Direct Message', required) Dropdown.
+*   `expiryDate`: (Date | null, optional) Date picker.
+*   `shareLocation`: (boolean) Checkbox.
+*   `location`: (object { latitude, longitude }, required *if* `shareLocation` is true) Map interaction planned.
+*   `imageUri`: (string | null) Stores local URI before upload or backend path after upload.
+
+**Building Upon:**
+*   Add more complex validation rules in the `Yup` schema.
+*   Introduce new fields to the form, ensuring they are added to `initialValues`, `Formik`'s JSX, the validation schema, and the backend model/route (`backend/models/FoodItem.js`, `backend/routes/foodItems.js`).
+*   Modify image handling (e.g., allow multiple images, add cropping).
+*   Integrate a map view component for selecting location visually.
+
+### 6.3. My Listings (`MyListingsScreen.tsx` & `EditListingScreen.tsx`)
+
+**Purpose:** Allows users to view, manage, and edit the listings they have previously created.
+
+**Location:**
+*   View/Manage: `src/screens/MyListingsScreen.tsx`
+*   Edit: `src/screens/EditListingScreen.tsx`
+
+**Data Flow (`MyListingsScreen`):**
+1.  **Fetching:** On screen focus (`useFocusEffect`), fetches the user's specific listings via a `GET` request to `${API_BASE_URL}/api/fooditems/my-listings`. Requires the auth token.
+2.  **Display:** Shows the fetched listings in a vertical `FlatList`. Each item includes Title, Price, Image, and action buttons.
+
+**Actions (`MyListingsScreen`):**
+*   **Add New:** A button navigates the user to `PostScreen`.
+*   **Edit:** An "Edit" button (`handleEdit`) on each listing card navigates the user to `EditListingScreen`, passing the `item._id` as a route parameter.
+*   **Delete:** A "Delete" button (`handleDelete`) triggers an `Alert` confirmation. If confirmed, sends a `DELETE` request to `${API_BASE_URL}/api/fooditems/:itemId` (using the item's `_id`). Requires the auth token. Refreshes the list on successful deletion.
+
+**Workflow (`EditListingScreen`):**
+1.  **Fetch Data:** Retrieves the `itemId` from route parameters. Fetches the specific listing data via a `GET` request to `${API_BASE_URL}/api/fooditems/:itemId`. Requires the auth token.
+2.  **Pre-populate Form:** Uses the fetched data to set the `initialValues` for the `Formik` form, allowing the user to see and modify existing data.
+3.  **Image Handling:** Similar to `PostScreen`. If the user selects a *new* image, it's uploaded first via `POST` to `${API_BASE_URL}/api/fooditems/upload-image`. The existing image URI is used otherwise.
+4.  **Form Submission:** On submit (`handleSubmit`), sends the updated form data (including new image path, if applicable) via a `PUT` request to `${API_BASE_URL}/api/fooditems/:itemId`. Requires the auth token. Navigates back on success.
+
+**Form Fields & Validation (`EditListingScreen`):**
+*   Mirrors the fields and validation schema of `PostScreen`, adapted for editing. Ensures consistency in data requirements.
+
+**Building Upon:**
+*   Add functionality to mark items as "Sold" or "Unavailable" instead of just deleting.
+*   Implement filtering or sorting options for the user's listings.
+*   Enhance the UI for managing listings (e.g., show listing status).
+*   Refine error handling and user feedback during edit/delete operations.
+
+## 7. Component Playground 🎨
+
+**Location:** `src/screens/ComponentPlaygroundScreen.tsx`
+
+**Purpose:**
+The Component Playground is a development screen designed to:
+- Rapidly prototype and test UI components in isolation.
+- Showcase different variations and states of components.
+- Facilitate design reviews and ensure consistency.
+- Aid in debugging component-specific issues.
+
+**Usage During Development:**
+- The playground provides buttons to navigate directly to all major application screens, speeding up the development workflow.
+- It serves as a living style guide where developers can see examples of core components (Buttons, Inputs, Cards, etc.) using the application's theme.
+
+**Adding Components to the Playground:**
+1. Open `src/screens/ComponentPlaygroundScreen.tsx`.
+2. Import the component you want to showcase.
+3. Add a new `View` section within the `ScrollView`.
+4. Include a `Text` component as a title for the section.
+5. Render different variations of your component within this section.
 
 ```typescript
+// Example: Adding NewComponent to ComponentPlaygroundScreen.tsx
 import NewComponent from '../components/NewComponent';
+// ... other imports
 
 const ComponentPlaygroundScreen: React.FC = () => {
+  const navigation = useNavigation<StackNavigationProp<any>>();
+  const theme = useTheme();
+
   return (
-    <ScrollView>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* ... other component sections ... */}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>New Component Variants</Text>
-        
-        <NewComponent variant="primary" />
-        <NewComponent variant="secondary" />
-        <NewComponent disabled />
+        <NewComponent variant="primary" label="Primary Action" />
+        <NewComponent variant="secondary" label="Secondary Action" disabled />
+        {/* Add more variants as needed */}
       </View>
+
+      {/* ... navigation buttons ... */}
     </ScrollView>
   );
 };
 ```
 
-#### Best Practices
-- Show multiple component states
-- Include different prop combinations
-- Add console logs to test interactions
-- Use consistent styling sections
+## 8. State Management (React Context API)
 
-### Development Navigation Principles
+**Location:** `src/contexts/`
 
-#### Goals
-- Minimize context switching
-- Rapid screen and component testing
-- Simplified development workflow
+**Approach:**
+We utilize React's built-in Context API along with `useReducer` and `useContext` hooks for managing global application state. This provides a lightweight, type-safe solution without external dependencies.
 
-#### Navigation Strategies
-- One-click access to any screen
-- Consistent back navigation
-- Clear, intuitive routing
+**Global State Structure (`AppContext.tsx`):**
+The main context combines several domain-specific states:
+- **Authentication State (`AuthState`):** Manages user login status, user details (`user`), JWT token (`token`), and authentication errors (`error`). Handled by `AuthReducer`. Located in `src/contexts/AuthContext.tsx` (or integrated within `AppContext.tsx`).
+- **Theme State (`ThemeState`):** Manages UI theme preferences (e.g., `mode: 'light' | 'dark'`, potentially custom colors). Handled by `ThemeReducer`. Integrated within `AppContext.tsx` or a separate `ThemeContext.tsx`.
+- **Location State (`LocationState`):** Stores user's geographic information (`latitude`, `longitude`, `address`). Handled by `LocationReducer`. Integrated within `AppContext.tsx` or a separate `LocationContext.tsx`.
+- **Cart State (`CartContext.tsx`):** Manages the user's shopping cart (`items`). Uses its own provider (`CartProvider`) and hook (`useCart`).
 
-### Disabling Development Navigation
-To remove development navigation features:
-1. Update `MainNavigator.tsx`
-2. Remove development-specific routing
-3. Set appropriate initial screen
+**Using the Context:**
+```typescript
+// Example: Accessing Auth state in a component
+import React from 'react';
+import { View, Text, Button } from 'react-native';
+import { useAppContext } from '../contexts/AppContext'; // Assuming combined context
 
-## React Native Paper Integration 🎨
+const ProfileScreen: React.FC = () => {
+  const { state, dispatch } = useAppContext();
 
-### Overview
-React Native Paper is our comprehensive UI component library, providing a consistent, modern design system across our Sugar Marketplace app.
+  const handleLogout = () => {
+    dispatch({ type: 'LOGOUT' });
+    // Potentially call an AuthService logout function here too
+  };
 
-### Key Features
-- 🌈 Custom Theming
-- 🧩 Modular Components
-- ♿ Accessibility Support
-- 🚀 Performance Optimized
+  return (
+    <View>
+      {state.auth.isAuthenticated ? (
+        <>
+          <Text>Welcome, {state.auth.user?.username || 'User'}</Text>
+          <Button title="Logout" onPress={handleLogout} />
+        </>
+      ) : (
+        <Text>Please log in.</Text>
+      )}
+    </View>
+  );
+};
 
-### Theme Configuration
-Our custom theme is defined in `src/theme/SugarTheme.ts`:
-- Primary Color: Sea Green (#2E8B57)
-- Secondary Color: Medium Sea Green (#3CB371)
-- Accent Color: Light Green (#90EE90)
-- Background: Honeydew (#F0FFF0)
+export default ProfileScreen;
+```
 
-### Available Paper Components
-1. **PaperInput**
-   - Supports label, error states
-   - Outlined mode
-   - Validation integration
-   ```typescript
-   <PaperInput 
-     label="Email" 
-     error={touched.email && errors.email}
-   />
-   ```
+**Key Principles:**
+- **Immutability:** Reducers must return new state objects instead of mutating the existing state.
+- **Type Safety:** TypeScript interfaces (`AppState`, `AuthAction`, etc.) define the structure of state and actions.
+- **Separation of Concerns:** Contexts are often split by domain (Auth, Theme, Cart) to keep management focused.
 
-2. **PaperButton**
-   - Multiple variants: primary, secondary, tertiary
-   - Modes: contained, outlined, text
-   ```typescript
-   <PaperButton 
-     variant="primary" 
-     mode="contained"
-   >
-     Submit
-   </PaperButton>
-   ```
+## 9. Design System (React Native Paper)
 
-3. **PaperCard**
-   - Flexible content layout
-   - Optional image and actions
-   ```typescript
-   <PaperCard
-     title="Product Name"
-     content="Description"
-     imageUri="..."
-   />
-   ```
+**Library:** [React Native Paper](https://callstack.github.io/react-native-paper/)
 
-4. **PaperModal**
-   - Customizable dialogs
-   - Confirmation workflows
-   ```typescript
-   <PaperModal
-     visible={isModalVisible}
-     title="Confirm Action"
-     content="Are you sure?"
-     onConfirm={handleConfirm}
-   />
-   ```
+**Custom Theme:** `src/theme/SugarTheme.ts`
 
-### Best Practices
-- Always use Paper components over custom components
-- Leverage `useTheme()` for dynamic styling
-- Maintain consistent spacing and typography
-- Use semantic color mapping
+**Philosophy:**
+We exclusively use React Native Paper components for all UI elements to ensure a consistent, modern look and feel based on Material Design 3. This approach promotes:
+- **Consistency:** Uniform styling across the app.
+- **Maintainability:** Centralized theme management.
+- **Accessibility:** Built-in accessibility features.
+- **Responsiveness:** Components adapt to different screen sizes.
 
-### Performance Tips
-- Minimize custom styling
-- Use predefined modes and variants
-- Lazy load complex components
+**Key Guidelines:**
+- **Always Import `useTheme`:** Access theme colors, fonts, and spacing via the `useTheme` hook from `react-native-paper`.
+- **Use Paper Components:** Replace standard React Native components (`View`, `Text`, `Button`, `TextInput`) with their Paper counterparts (`Surface`, `Text`, `Button`, `TextInput`).
+- **Leverage Theme:** Apply styling primarily through theme properties (e.g., `color={theme.colors.primary}`, `style={theme.fonts.headlineSmall}`). Avoid inline styles for theme-related properties.
+- **Custom Theme (`SugarTheme.ts`):** Defines the application's specific color palette, fonts, and component variants based on the default Material Design 3 theme.
 
-### Customization
-Modify `SugarTheme.ts` to:
-- Adjust color palette
-- Configure font styles
-- Set global spacing
+**Example Usage:**
+```typescript
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text, Button, useTheme } from 'react-native-paper';
 
-### Troubleshooting
-- Ensure all Paper components are wrapped in `<PaperProvider>`
-- Check theme configuration
-- Verify import paths
+const MyComponent: React.FC = () => {
+  const theme = useTheme(); // Access the theme
 
-### Future Roadmap
-- Implement more complex Paper components
-- Create design system documentation
-- Continuous theme refinement
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
+        Welcome!
+      </Text>
+      <Button
+        mode="contained" // Paper button style
+        onPress={() => console.log('Pressed')}
+        style={{ marginTop: 16 }}
+        // Button automatically uses theme's primary color for contained mode
+      >
+        Get Started
+      </Button>
+    </View>
+  );
+};
 
-### Theming Best Practices
-- Use `useTheme()` hook for dynamic theming
-- Leverage predefined color constants
-- Maintain consistent border radius and spacing
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
-## Development Workflow
+export default MyComponent;
+```
 
-### Creating a New Feature
-- Create a new branch for your feature:
+## 10. Development Workflow
+
+### Branching Strategy
+- Use feature branches based off the main development branch (e.g., `main` or `develop`).
+- Branch naming convention: `feature/your-feature-name` or `fix/bug-description`.
   ```bash
-  git checkout -b feature/your-feature-name
+  git checkout main
+  git pull
+  git checkout -b feature/new-checkout-flow
   ```
-- Develop your feature, ensuring you follow coding standards and best practices.
 
-### Testing (no tests are written yet)
-- Run tests to ensure your changes do not break existing functionality:
+### Testing (No tests implemented yet)
+- **Goal:** Implement unit and integration tests using Jest and React Native Testing Library.
+- When implemented, run tests via:
   ```bash
   npm test
   ```
-- Write new tests if applicable.
 
-### Submitting a Pull Request
-- Push your branch to the remote repository:
-  ```bash
-  git push origin feature/your-feature-name
-  ```
-- Create a pull request on GitHub, providing a detailed description of your changes.
-- Request reviews from team members.
+### Submitting Changes (Pull Requests)
+1. Develop the feature/fix on your branch.
+2. Commit changes with clear, concise messages.
+3. Push your branch to the remote repository:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+4. Create a Pull Request (PR) on GitHub against the main development branch.
+5. Provide a detailed description of changes in the PR.
+6. Request code reviews from team members.
 
-### Merging and Deployment
-- Once approved, merge your pull request into `main`.
-- Ensure the CI/CD pipeline deploys the changes to Heroku.
+### Merging
+- Once the PR is approved and passes any CI checks, merge it into the main development branch.
 
-## Additional Documentation
+## 11. Linting & Formatting
 
-### State Management
-- **React Context and Hooks**
-  - Centralized state management using React Context API
-  - Type-safe global state with TypeScript
-  - Lightweight and performant solution
+- **Tools:** ESLint and Prettier are configured for code quality and consistent style.
+- **Check:** Run `npm run lint` to identify linting errors.
+- **Format:** Run `npm run format` to automatically format code according to Prettier rules.
+- **Recommendation:** Configure your code editor to format on save using ESLint and Prettier plugins.
 
-### Global State Structure
-Our application state is managed through a comprehensive context system:
-- **Authentication State**: User login, token management
-- **Theme State**: Light/dark mode, color preferences
-- **Location State**: User's geographic information
+## 12. Continuous Integration (CI/CD)
 
-### Using the App Context
-```typescript
-// In any component
-import { useAppContext } from './contexts/AppContext';
+- **Platform:** GitHub Actions.
+- **Workflow:** A basic CI/CD pipeline is likely configured (check `.github/workflows`) for automated testing (when tests exist) and potentially deployment on pushes/merges to the main branch.
+- **Deployment:** Currently targets Heroku for the backend. Frontend deployment might involve Expo Application Services (EAS) builds later.
 
-function MyComponent() {
-  const { state, dispatch } = useAppContext();
+## 13. Monitoring & Scaling
+- **Current State:** Basic logging is implemented.
+- **Future Considerations:**
+    - Integrate performance monitoring tools (e.g., Sentry, Datadog).
+    - Optimize database queries using indexing (MongoDB Atlas provides tools for this).
+    - Implement caching strategies (backend API responses, frontend data).
 
-  // Access state
-  const isLoggedIn = state.auth.isAuthenticated;
-  const currentTheme = state.theme.mode;
+## 14. Security Best Practices
+- **Input Validation:** Validate and sanitize all user inputs on both frontend (Yup) and backend.
+- **Authentication:** Use JWT securely (HTTPS, httpOnly cookies if applicable for web, secure storage in mobile).
+- **Authorization:** Ensure backend endpoints verify user permissions before performing actions (e.g., checking if the user owns the listing they are trying to edit/delete).
+- **Secrets Management:** Never commit sensitive information (API keys, JWT secrets, database credentials) directly to the codebase. Use `.env` files and ensure they are in `.gitignore`.
+- **Dependencies:** Regularly update dependencies to patch security vulnerabilities.
 
-  // Dispatch actions
-  const handleLogin = (user, token) => {
-    dispatch({ 
-      type: 'LOGIN', 
-      payload: { user, token } 
-    });
-  };
+## 15. Troubleshooting
 
-  const toggleTheme = () => {
-    dispatch({ type: 'TOGGLE_THEME' });
-  };
-}
-```
+- **Dependency Issues:** If `npm install` fails or causes unexpected errors, try deleting `node_modules` and `package-lock.json` (or `yarn.lock`) and running `npm install --legacy-peer-deps` again.
+- **API Connection Errors (Expo Go):** If the app can't connect to the local backend:
+    - Ensure the backend server is running.
+    - Verify the `API_BASE_URL` in the frontend's `.env` file is correct. If using a physical device, it must be your computer's local network IP (e.g., `http://192.168.1.10:3000`), not `localhost`.
+    - Check firewall settings aren't blocking the connection on the required port (3000).
+- **Database Connection Issues:** Ensure your `MONGODB_URI` in the backend `.env` file is correct and that your current IP address is whitelisted in MongoDB Atlas network access settings.
+- **Image Upload/Display Issues:** Verify backend file permissions and that the `${API_BASE_URL}` used for constructing image URLs in the frontend is correct.
 
-### Key Context Features
-- Centralized state management
-- Type-safe actions and state
-- Easy to extend and modify
-- No external dependencies
-- Integrated with React's hooks system
-
-### Testing
-- **Testing Library:**
-  - Using `@testing-library/react-native` and `@testing-library/jest-native` for component testing.
-  - Jest is configured as the test runner.
-
-### Linting and Formatting
-- **ESLint and Prettier:**
-  - Configured for code quality and style consistency.
-  - Run `npm run lint` to check for linting errors.
-  - Run `npm run format` to format code using Prettier.
-
-### Continuous Integration
-- **GitHub Actions:**
-  - CI/CD pipeline configured for automated testing and deployment.
-  - Deployment to Heroku on push to the main branch.
-
-### Environment Variables
-- **Configuration:**
-  - Use `.env` files to manage environment-specific variables.
-  - Ensure `.env` is included in `.gitignore` to prevent sensitive data from being committed.
-
-## Monitoring and Scaling
-- Set up monitoring tools to track app performance.
-- Optimize database queries and use indexing for better performance.
-- Implement caching strategies to improve response times.
-
-## Security Best Practices
-- Validate and sanitize inputs on both frontend and backend.
-
-## Troubleshooting
-- **Database Connection Issues:** Ensure your `MONGODB_URI` is correct and network settings allow access.
-
-## Contact
+## 16. Contact
 For any questions or issues, please contact the project maintainer at [rodi1364@colorado.edu].

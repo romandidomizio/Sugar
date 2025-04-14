@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
 const mongoose = require('mongoose');
+const path = require('path'); // Import the path module
 
 const app = express();
 
@@ -19,6 +20,7 @@ mongoose.set('debug', true);
 app.use(helmet()); // Adds various HTTP headers for security
 
 // Enhanced request and response logging
+/* 
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
   console.log('Request body:', req.body);
@@ -29,6 +31,7 @@ app.use((req, res, next) => {
   };
   next();
 });
+*/
 
 // CORS configuration logging
 app.use(cors({ 
@@ -44,14 +47,17 @@ app.use(cors({
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 200 // Increased limit for development/testing
 });
 app.use(limiter);
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(expressSanitizer()); // Sanitize inputs
+
+// Log the static path being used
+const staticPath = path.join(__dirname, 'uploads');
+console.log(`[Server] Serving static files from: ${staticPath}`);
+app.use('/uploads', express.static(staticPath)); // Serve static files using absolute path
 
 // Review authentication middleware
 const authMiddleware = require('./middleware/authMiddleware');
@@ -59,8 +65,10 @@ const authMiddleware = require('./middleware/authMiddleware');
 // Routes
 const userRoutes = require('./routes/userRoutes');
 const foodItemsRoutes = require('./routes/foodItems');
+const listingRoutes = require('./routes/listingRoutes'); // Import listing routes
 app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
+app.use('/api/listings', listingRoutes); // Mount listing routes for public access
 
 // Apply authMiddleware selectively to routes that require authentication
 app.use('/api/users/profile', authMiddleware);

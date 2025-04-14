@@ -2,10 +2,10 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 
-const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
+const WelcomeScreen = ({ onFinish }: { onFinish?: () => void }) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
-      onFinish();
+      onFinish?.();
     }, 3000); // 3-second loading
 
     return () => clearTimeout(timeout);
@@ -35,4 +35,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoadingScreen;
+export default WelcomeScreen;

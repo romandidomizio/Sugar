@@ -20,16 +20,22 @@ class AuthService {
     try {
       console.log(`[AuthService] Attempting login for user: ${credentials.username}`);
       const response = await axios.post(`${API_URL}/login`, credentials);
+      console.log('[AuthService] Login API call successful. Response:', response.data); // Log raw response
       const { token } = response.data;
-      
+      console.log('[AuthService] Extracted token:', token); // Log the token
+
       // Store token in secure storage
       await AsyncStorage.setItem('userToken', token);
-      
+      console.log('[AuthService] Token stored successfully.');
+
       console.log(`[AuthService] Login successful for user: ${credentials.username}`);
-      
+
       // Fetch user profile
+      console.log('[AuthService] Attempting to fetch user profile...');
       const profileResponse = await this.fetchUserProfile(token);
-      
+      console.log('[AuthService] Profile fetched successfully:', profileResponse);
+
+      console.log('[AuthService] Returning success object.');
       return {
         user: profileResponse,
         token

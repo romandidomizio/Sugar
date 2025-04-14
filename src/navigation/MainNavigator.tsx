@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigatorScreenParams, DefaultTheme, Theme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Appbar, useTheme } from 'react-native-paper';
@@ -17,10 +17,39 @@ import CommunityScreen from '../screens/CommunityScreen';
 import PostScreen from '../screens/PostScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
+import EditListingScreen from '../screens/EditListingScreen';
 import { SugarTheme } from '../theme/SugarTheme';
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+// --- Define Param List Types --- //
+
+// Type for screens within the Bottom Tab Navigator
+export type BottomTabParamList = {
+  Home: undefined; // No params expected
+  Community: undefined;
+  Post: { listingId?: string }; // Add optional listingId for editing
+  'My Listings': undefined;
+  Messages: undefined;
+};
+
+// Type for screens within the main Stack Navigator
+export type RootStackParamList = {
+  ComponentPlayground: undefined;
+  Loading: undefined;
+  Welcome: undefined;
+  Login: undefined;
+  Register: undefined;
+  // Use NavigatorScreenParams to type the nested BottomTab navigator
+  // Allows navigating to 'BottomTab' and specifying a screen inside it like { screen: 'Home' }
+  BottomTab: NavigatorScreenParams<BottomTabParamList>; 
+  Cart: undefined;
+  Notifs: undefined;
+  Profile: undefined;
+  EditListing: { listingId: string }; 
+};
+
+// --- Create Navigators with Types --- //
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const CustomNavigationBar = ({ navigation, back, route }: any) => {
   const theme = useTheme();
@@ -52,7 +81,7 @@ const CustomNavigationBar = ({ navigation, back, route }: any) => {
 
 const MainNavigator = () => {
   return (
-    <NavigationContainer theme={SugarTheme}>
+    <NavigationContainer theme={SugarTheme as unknown as Theme}>
       <Stack.Navigator
         screenOptions={({ navigation, route }) => ({
           header: (props) => {
@@ -93,6 +122,7 @@ const MainNavigator = () => {
         <Stack.Screen
           name="BottomTab"
           component={MainBottomTabNavigator}
+          // Header is handled by the screenOptions on the Navigator
         />
         <Stack.Screen
           name="Cart"
@@ -133,6 +163,19 @@ const MainNavigator = () => {
             ),
           })}
         />
+        <Stack.Screen
+          name="EditListing" 
+          component={EditListingScreen}
+          options={({ navigation, route }) => ({
+            header: (props) => (
+              <CustomNavigationBar
+                {...props}
+                navigation={navigation}
+                route={route}
+              />
+            ),
+          })}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -143,7 +186,7 @@ const MainBottomTabNavigator = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
-          let iconName;
+          let iconName: string = 'help-circle'; // Default fallback icon
           if (route.name === 'Home') {
             iconName = 'home';
           } else if (route.name === 'Community') {
@@ -155,11 +198,13 @@ const MainBottomTabNavigator = () => {
           } else if (route.name === 'Messages') {
             iconName = 'message';
           }
+          // iconName is guaranteed to be a string here
           return <Appbar.Action icon={iconName} color={color} size={size} />;
         },
         headerShown: false,
       })}
     >
+      {/* Define screens within the BottomTab navigator */}
       <Tab.Screen name="Home" component={HomeScreen} options={{ headerTitle: 'Home' }} />
       <Tab.Screen name="Community" component={CommunityScreen} options={{ headerTitle: 'Community' }} />
       <Tab.Screen name="Post" component={PostScreen} options={{ headerTitle: 'Post' }} />

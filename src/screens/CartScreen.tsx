@@ -2,15 +2,19 @@
 import React from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { useTheme, Text, Divider, IconButton, Surface } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-
-import { PaperButton } from '../components/paper';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/MainNavigator';
 import { useCart, CartItem } from '../contexts/CartContext';
 
-const CartScreen: React.FC = () => {
+import { PaperButton } from '../components/paper';
+
+type CartScreenProps = {
+  navigation: StackNavigationProp<RootStackParamList, 'Cart'>;
+};
+
+const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
   const theme = useTheme();
-  const navigation = useNavigation();
-  const { items, removeFromCart, updateQuantity, clearCart, getTotal } = useCart();
+  const { items, removeFromCart, updateQuantity, clearCart, total } = useCart();
 
   const EmptyCart = () => (
     <View style={styles.emptyContainer}>
@@ -22,7 +26,9 @@ const CartScreen: React.FC = () => {
       </Text>
       <PaperButton
         variant="primary"
-        onPress={() => navigation.navigate('Home')}
+        // Navigate to the BottomTab navigator, targeting the Home screen within it
+        // Lint f1f18aaa may persist due to navigation type definitions
+        onPress={() => navigation.navigate('BottomTab', { screen: 'Home' })}
         style={styles.shopButton}
       >
         Go to Marketplace
@@ -115,7 +121,7 @@ const CartScreen: React.FC = () => {
             <View style={styles.summaryRow}>
               <Text variant="titleMedium">Total:</Text>
               <Text variant="titleLarge" style={{ color: theme.colors.primary }}>
-                {getTotal()}
+                {`$${total.toFixed(2)}`}
               </Text>
             </View>
 

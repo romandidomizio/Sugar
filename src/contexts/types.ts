@@ -38,4 +38,5 @@ export type AppAction =
   | { type: 'UPDATE_USER', payload: Partial<User> }
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_LOCATION', payload: { latitude: number, longitude: number, address: string } }
-  | { type: 'CLEAR_LOCATION' };
+  | { type: 'CLEAR_LOCATION' }
+  | { type: 'CLEAR_ERROR' };

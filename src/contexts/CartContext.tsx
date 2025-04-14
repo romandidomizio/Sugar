@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useMemo } from 'react';
 
 // Define the item interface
 export interface CartItem {
@@ -18,7 +18,7 @@ interface CartContextType {
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
-  getTotal: () => string;
+  total: number;
 }
 
 // Create the context with default values
@@ -28,7 +28,7 @@ const CartContext = createContext<CartContextType>({
   removeFromCart: () => {},
   updateQuantity: () => {},
   clearCart: () => {},
-  getTotal: () => '$0.00',
+  total: 0,
 });
 
 // Custom hook to use the cart context
@@ -77,18 +77,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems([]);
   };
 
-  const getTotal = () => {
-    const total = items.reduce((acc, item) => {
-      // Extract the numeric part of the price (remove $ and any /lb or similar)
-      const priceMatch = item.price.match(/\$([0-9.]+)/);
-      if (!priceMatch) return acc;
+  // Calculate total using useMemo, dependent on items
+  const total = useMemo(() => {
+    return items.reduce((acc, item) => {
+      // Ensure price is treated as a string for regex matching
+      const priceString = String(item.price);
+      const priceMatch = priceString.match(/\$?([0-9.]+)/); // Allow optional $ prefix
+
+      if (!priceMatch) {
+        console.warn(`Could not parse price for item ${item.title}: ${item.price}`);
+        return acc;
+      }
 
       const priceValue = parseFloat(priceMatch[1]);
-      return acc + priceValue * item.quantity;
-    }, 0);
 
-    return `$${total.toFixed(2)}`;
-  };
+      // Ensure priceValue is a valid number
+      if (isNaN(priceValue)) {
+        console.warn(`Parsed price is NaN for item ${item.title}: ${item.price}`);
+        return acc;
+      }
+
+      return acc + priceValue * item.quantity;
+    }, 0); // Initial accumulator value is 0
+  }, [items]); // Dependency array ensures recalculation only when items change
 
   const value = {
     items,
@@ -96,7 +107,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     removeFromCart,
     updateQuantity,
     clearCart,
-    getTotal,
+    total, // Pass the calculated total value
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

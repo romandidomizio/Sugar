@@ -1,115 +1,654 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { useTheme, Text, Divider, Badge } from 'react-native-paper';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  Alert,
+  ScrollView,
+  Image, // Re-add Image import
+  Pressable,
+} from 'react-native';
+import {
+  useTheme,
+  Text,
+  Divider,
+  ActivityIndicator,
+  Button,
+  Card,
+  Modal,
+  Portal,
+  Surface,
+} from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack'; // Import StackNavigationProp
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'; // Import BottomTabNavigationProp
+import { CompositeNavigationProp } from '@react-navigation/native'; // Import CompositeNavigationProp
+import { RootStackParamList, BottomTabParamList } from '../navigation/MainNavigator'; // Import param lists
+import * as Location from 'expo-location'; // Import expo-location for geocoding
 import axios from 'axios';
+import { API_BASE_URL } from '@env';
 
-import { PaperCard } from '../components/paper';
-import { PaperButton } from '../components/paper';
+console.log('[HomeScreen] API_BASE_URL:', API_BASE_URL); // Log API_BASE_URL on component load
+
 import { useCart } from '../contexts/CartContext';
 
-// Define the item interface to match CartItem
+// Define composite navigation prop type
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<BottomTabParamList, 'Home'>, // Navigation within BottomTab
+  StackNavigationProp<RootStackParamList> // Navigation for Stack screens like Cart, Messages
+>;
+
+// Define Props including the composite navigation type
+type HomeScreenProps = {
+  navigation: HomeScreenNavigationProp;
+};
+
+// Define the interface for marketplace items
+// Updated interface to include all potential fields from backend/usage
 interface MarketplaceItem {
-  id: string;
+  _id: string;
   title: string;
   producer: string;
   price: string;
   description: string;
-  imageUri: string;
-  _id: string;
+  imageUri: string | null; // Allow null if no image
+  location?: { type: 'Point'; coordinates: [number, number] }; // Added specific location type
+  origin?: string; // Optional: Added based on usage
+  certifications?: string[]; // Optional: Added based on usage
+  expiryDate?: string;
+  contactInfo?: string; // Optional: Added based on usage (but hidden in modal)
+  contactMethod?: 'Direct Message' | 'Phone Call' | 'Text' | 'Email'; // Assume specific values
+  userId: string;
+  createdAt: string;
+  shareLocation?: boolean; // Optional: Added based on usage
+  unitType?: string; // Optional: Added based on usage
+  sizeMeasurement?: string; // Optional: Added based on usage
 }
 
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const theme = useTheme();
-  const navigation = useNavigation();
-  const { addToCart, items } = useCart(); // Use the CartContext
+  const { addToCart, items: cartItems } = useCart(); // Use the useCart hook
 
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchFoodItems = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/marketplace');
-        setMarketplaceItems(response.data);
-      } catch (error) {
-        console.error('Error fetching food items:', error);
-      }
-    };
-    fetchFoodItems();
-  }, []);
+  // State for modal visibility and selected item
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null); // State for reverse geocoded location name
+
+  // --- Data Fetching Function ---
+  const fetchMarketplaceItems = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetching all items for the general marketplace
+      const response = await axios.get<MarketplaceItem[]>(`${API_BASE_URL}/api/marketplace`);
+
+      // Sort items by creation date, newest first
+      const sortedItems = response.data.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setMarketplaceItems(sortedItems);
+    } catch (err: any) {
+      console.error('Error fetching marketplace items:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch marketplace items.';
+      setError(errorMessage);
+      Alert.alert('Error', `${errorMessage} Please try again later.`);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Empty dependency array, fetch logic doesn't depend on component state here
+
+  // --- Use Focus Effect for Auto-Refresh ---
+  useFocusEffect(
+    useCallback(() => {
+      fetchMarketplaceItems();
+      // Optional cleanup
+      // return () => console.log('HomeScreen blurred');
+    }, [fetchMarketplaceItems])
+  );
 
   // Count items in cart for badge
-  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemCount = cartItems.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0);
+
+  // --- Filter Data --- 
+  // Helper function to parse price string (handles '$', ',', etc.)
+  const parsePrice = (priceStr: string): number => {
+    if (!priceStr) return 0;
+    // Remove currency symbols, commas, and keep only numbers and decimal point
+    const cleanedPrice = priceStr.replace(/[^0-9.]+/g, '');
+    return parseFloat(cleanedPrice) || 0; // Return 0 if parsing fails
+  };
+
+  const freeItems = marketplaceItems.filter(item => parsePrice(item.price) === 0);
+  const paidItems = marketplaceItems.filter(item => parsePrice(item.price) > 0);
+
+  // --- Modal Handling Functions ---
+  const handleCardPress = (item: MarketplaceItem) => {
+    setSelectedItem(item);
+    setModalVisible(true);
+    setLocationName(null); // Reset location name when opening modal
+    // Log the selected item for debugging
+    console.log('Selected Item:', item);
+  };
+
+  const handleModalDismiss = () => {
+    setModalVisible(false);
+    setLocationName(null); // Clear location name on dismiss
+    setSelectedItem(null); // Clear selected item as well
+  };
+
+  // --- Button Handlers (Placeholders) --- //
+  const handleAddToCart = () => {
+    if (selectedItem) {
+      // Map MarketplaceItem to CartItem structure expected by addToCart
+      // Fixing lint d714d6ff by adding missing properties
+      const itemToAdd = {
+        id: selectedItem._id, // Map _id to id for CartItem
+        _id: selectedItem._id,
+        title: selectedItem.title,
+        price: selectedItem.price,
+        // Fixing lint 6a683a3a: Provide fallback for potentially null imageUri
+        imageUri: selectedItem.imageUri ?? '', // Use empty string if imageUri is null
+        producer: selectedItem.producer, // Add producer
+        description: selectedItem.description, // Add description
+        // Ensure all fields required by Omit<CartItem, "quantity"> are present
+      };
+      addToCart(itemToAdd); // Add item to cart via context
+
+      // Show confirmation alert with navigation options
+      Alert.alert(
+        'Item Added',
+        `${selectedItem.title} has been added to your cart.`,
+        [
+          {
+            text: 'Keep Shopping',
+            onPress: () => handleModalDismiss(), // Close modal on press
+            style: 'cancel',
+          },
+          {
+            text: 'Go to Cart',
+            onPress: () => {
+              handleModalDismiss(); // Close modal first
+              navigation.navigate('Cart'); // Navigate to Cart screen
+            },
+          },
+        ],
+        { cancelable: false } // Prevent dismissing alert by tapping outside
+      );
+    } else {
+      console.error('Cannot add to cart, selectedItem is null');
+      Alert.alert('Error', 'Could not add item to cart.');
+    }
+  };
+
+  const handleMessageSeller = () => {
+    // Ensure an item is selected
+    if (!selectedItem) {
+      Alert.alert('Error', 'No item selected.');
+      return;
+    }
+
+    // Retrieve contact method and info from the selected item
+    const method = selectedItem.contactMethod;
+    const info = selectedItem.contactInfo;
+
+    // Close the modal regardless of the action taken
+    handleModalDismiss(); // Close modal for all actions or info display
+
+    // Handle contact based on the method chosen by the seller
+    switch (method) {
+      case 'Direct Message': // Match value saved from PostScreen
+        // Navigate to the messages screen for direct messaging
+        console.log(`Navigating to direct messages for item: ${selectedItem.title}`);
+        navigation.navigate('Messages'); // Adjust 'Messages' if screen name is different
+        break;
+
+      case 'Text': // Match value saved from PostScreen
+        // Show an alert prompting the user to text the seller's number
+        if (info) {
+          Alert.alert('Contact Seller', `Text the seller at: ${info}`);
+        } else {
+          // Handle missing contact info for the chosen method
+          Alert.alert('Contact Seller', 'Seller contact number is not available.');
+        }
+        break;
+
+      case 'Phone Call': // Match value saved from PostScreen
+        // Show an alert prompting the user to call the seller's number
+        if (info) {
+          Alert.alert('Contact Seller', `Call the seller at: ${info}`);
+        } else {
+          // Handle missing contact info for the chosen method
+          Alert.alert('Contact Seller', 'Seller contact number is not available.');
+        }
+        break;
+
+      case 'Email': // Match value saved from PostScreen
+        // Show an alert prompting the user to email the seller's address
+        if (info) {
+          Alert.alert('Contact Seller', `Email the seller at: ${info}`);
+        } else {
+          // Handle missing contact info for the chosen method
+          Alert.alert('Contact Seller', 'Seller email address is not available.');
+        }
+        break;
+
+      default:
+        // Handle cases where the contact method is missing or unrecognized
+        console.warn(`Unknown or missing contact method for item: ${selectedItem.title}`);
+        Alert.alert('Contact Seller', 'Contact information is not available for this seller.');
+        break;
+    }
+  };
+
+  // --- Helper Functions ---
+  // Capitalizes the first letter of each word and replaces underscores
+  const formatOrigin = (originString?: string): string => {
+    if (!originString) return 'N/A';
+    return originString
+      .replace(/_/g, ' ') // Replace underscores with spaces
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Cleans potential extra characters from certification strings
+  const cleanAndFormatCertifications = (certs?: string[]): string => {
+    if (!certs || certs.length === 0) {
+      return 'None';
+    }
+    return certs
+      .map(cert => cert.replace(/[\["'\]]/g, '')) // Remove brackets and quotes
+      .filter(cert => cert.trim().length > 0) // Remove empty strings after cleaning
+      .join(', ');
+  };
+
+  // Helper to format price with unit/size
+  const formatPrice = (item: MarketplaceItem): string => {
+    const priceValue = parseFloat(item.price) || 0;
+    // If price is 0.00, display 'Free' immediately
+    if (priceValue === 0) {
+      return 'Free';
+    }
+
+    let displayPrice = `$${priceValue.toFixed(2)}`; // Always show $ and 2 decimal places
+
+    // Prioritize sizeMeasurement if it exists
+    if (item.sizeMeasurement) {
+      displayPrice += ` / ${item.sizeMeasurement}`;
+    } 
+    // Otherwise, use unitType if it's meaningful
+    else if (item.unitType && item.unitType !== 'N/A' && item.unitType !== 'other') {
+      displayPrice += ` / ${item.unitType}`;
+    }
+
+    return displayPrice;
+  };
 
   // Render item function for FlatList
-  const renderItem = ({ item }: { item: MarketplaceItem }) => (
-    <PaperCard
-      key={item._id}
-      title={item.title}
-      subtitle={`Producer: ${item.producer}`}
-      content={`${item.description}\n\nPrice: ${item.price}`}
-      imageUri={item.imageUri}
-      actions={
-        <PaperButton
-          variant="primary"
-          onPress={() => {
-            addToCart(item);
-            Alert.alert(
-              'Added to Cart',
-              `${item.title} has been added to your cart!`,
-              [{ text: 'OK' }]
-            );
-          }}
-        >
-          Add to Cart
-        </PaperButton>
-      }
-    />
-  );
+  const renderItem = ({ item }: { item: MarketplaceItem }) => {
+    console.log(`[renderItem - ${item._id}] item.imageUri:`, item.imageUri); // Log raw imageUri
+    const imageUri = item.imageUri ? `${API_BASE_URL}/${item.imageUri.startsWith('/') ? item.imageUri.substring(1) : item.imageUri}` : null;
+    console.log(`[renderItem - ${item._id}] Constructed imageUri:`, imageUri); // Log the final URI
 
-  return (
-    <View style={styles.container}>
-      <FlatList
-        data={marketplaceItems}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        ListHeaderComponent={
-          <View>
-            <Divider />
-
-            {/* Marketplace Section */}
-            <View style={styles.marketplaceSection}>
-              <Text
-                variant="titleLarge"
-                style={[styles.sectionTitle, { color: theme.colors.primary }]}
-              >
-                Marketplace
-              </Text>
-            </View>
+    return (
+      // Wrap Card in Pressable to trigger modal
+      <Pressable onPress={() => handleCardPress(item)}>
+        <Card style={styles.card}>
+          {/* New container specifically for clipping the image */}
+          <View style={styles.imageClippingContainer}>
+            {/* Existing container for image content */} 
+            {imageUri ? (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.cardImage}
+                />
+              </View>
+            ) : (
+              <View style={[styles.imageContainer, styles.noImageContainer]}>
+                <Text style={styles.noImageText}>No image provided</Text>
+              </View>
+            )}
           </View>
+          {/* Content Area (sibling to the clipping container) */} 
+          <Card.Content style={styles.cardContent}>
+            {/* Title, Subtitle, Desc... */} 
+            <Text variant="titleMedium" numberOfLines={1} style={styles.cardTitle}>
+              {item.title}
+            </Text>
+            <Text variant="bodySmall" numberOfLines={1} style={styles.cardSubtitle}>
+              {`By: ${item.producer}`}
+            </Text>
+            <Text variant="bodySmall" numberOfLines={2} style={styles.cardDescription}>
+              {item.description}
+            </Text>
+
+            {/* --- Expiration Date --- */} 
+            {item.expiryDate && typeof item.expiryDate === 'string' && item.expiryDate.length > 0 && (
+              <Text variant="labelSmall" style={styles.cardExpiration}>
+                Expires: {(() => {
+                  try {
+                    const date = new Date(item.expiryDate);
+                    if (isNaN(date.getTime())) { return null; }
+                    return date.toLocaleDateString();
+                  } catch (e) {
+                    return null;
+                  }
+                })() || 'Invalid/Error'}
+              </Text>
+            )}
+          </Card.Content>
+        </Card>
+      </Pressable>
+    );
+  };
+
+  // --- Effect for Reverse Geocoding --- 
+  useEffect(() => {
+    // Function to perform reverse geocoding
+    const fetchLocationName = async () => {
+      if (selectedItem?.shareLocation && selectedItem.location?.coordinates) {
+        try {
+          // Extract coordinates (longitude, latitude from GeoJSON standard)
+          const [longitude, latitude] = selectedItem.location.coordinates;
+          // Perform reverse geocoding
+          const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+          // Extract city or locality from the first result
+          if (result.length > 0) {
+            const { city, region, postalCode } = result[0];
+            const name = `${city ? city + ', ' : ''}${region || ''} ${postalCode || ''}`.trim();
+            setLocationName(name || 'Location name not found'); // Set the location name state
+          } else {
+            setLocationName('Location name not found');
+          }
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          setLocationName('Could not fetch location'); // Handle potential errors
         }
-        numColumns={3} // Display 3 cards per row
-        columnWrapperStyle={styles.row} // Add margin between columns
-        contentContainerStyle={styles.container}
-      />
-    </View>
+      } else if (selectedItem) {
+        // If location sharing is off or no coordinates, set appropriate message
+        setLocationName('Location not shared');
+      }
+    };
+
+    if (modalVisible && selectedItem) {
+      fetchLocationName(); // Call the geocoding function when modal is visible and item is selected
+    }
+  }, [selectedItem, modalVisible]); // Re-run effect when selectedItem or modal visibility changes
+
+  // --- Define Styles Inside Component to Access Theme --- 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    scrollViewContent: {
+      paddingVertical: 10, // Apply padding to the scroll content instead
+    },
+    sectionContainer: {
+      marginBottom: 15, // Space between sections
+      paddingHorizontal: 10, // Reduce horizontal padding to move content left
+    },
+    sectionTitle: {
+      marginLeft: 10,
+      marginBottom: 5, // Space below title
+    },
+    card: {
+      marginHorizontal: 10, // Restore margin
+      marginTop: 8, // Reduce margin slightly
+      width: 180, // Reduce width
+      height: 240, // Reduce height
+      elevation: 3, // Restore shadow
+      borderRadius: theme.roundness * 3, // Restore radius
+      marginBottom: 8, // Reduce margin slightly
+      backgroundColor: theme.colors.surface, // Keep background
+    },
+    imageClippingContainer: {
+      borderTopLeftRadius: theme.roundness * 3, // Match card radius
+      borderTopRightRadius: theme.roundness * 3, // Match card radius
+      overflow: 'hidden', // Apply clipping here
+    },
+    imageContainer: {
+      height: 120, // Reduce image height proportionally
+    },
+    cardImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover', // Cover ensures the image fills, might crop
+    },
+    noImageContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    noImageText: {
+      color: theme.colors.onSurfaceVariant, // Use theme color
+      fontSize: 12,
+    },
+    cardContent: {
+      padding: 6, // Reduce padding further
+      flexGrow: 1, // Allow content to fill remaining space
+    },
+    cardTitle: {
+      marginBottom: 2, // Increase space below title
+      fontWeight: 'bold', // Make title stand out
+      color: theme.colors.onSurface, // Use theme color
+    },
+    cardSubtitle: {
+      marginBottom: 6, // Increase space below subtitle
+      color: theme.colors.onSurfaceVariant, // Use theme color
+    },
+    cardDescription: {
+      fontSize: 12,
+      marginBottom: 20, // Increase space below description
+      color: theme.colors.onSurfaceVariant, // Use theme color
+    },
+    cardExpiration: {
+      fontSize: 13, // Make text slightly larger
+      fontWeight: '500', // Medium weight
+      color: theme.colors.primary, // Use primary theme color
+      textAlign: 'right', // Align expiration to the right?
+    },
+    emptySectionText: {
+      marginLeft: 15, // Align with section padding
+      fontStyle: 'italic',
+      color: theme.colors.onSurfaceVariant, // Use theme color
+    },
+    divider: {
+      marginVertical: 10, // Space around the divider
+      backgroundColor: theme.colors.outlineVariant, // Use a subtle theme color
+    },
+    centeredMessageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    messageText: {
+      textAlign: 'center',
+      marginVertical: 16,
+      color: theme.colors.onSurface, // Use theme color
+    },
+    retryButton: {
+      marginTop: 10,
+    },
+    // --- Modal Styles --- 
+    modalContainer: { // Style for the Modal wrapper itself
+      padding: 20, // Padding around the Surface
+      margin: 20, // Margin from screen edges
+      marginTop: 50, // Add margin top
+      maxHeight: '85%', // Max height to prevent full screen takeover
+      justifyContent: 'center', // Center Surface vertically if maxHeight isn't hit
+    },
+    modalSurface: { // Style for the content background
+      padding: 15,
+      borderRadius: 10, // Match container radius
+    },
+    modalScroll: { // ScrollView takes available space
+      marginBottom: 15, // Space above the buttons
+    },
+    modalTitle: {
+      fontSize: 30,
+      fontWeight: 'bold',
+      marginBottom: -10, // Add space below title
+      textAlign: 'center',
+    },
+    modalImage: {
+      width: '90%', // Use percentage for responsiveness
+      aspectRatio: 1, // Maintain square aspect ratio, adjust as needed
+      alignSelf: 'center',
+      marginBottom: 0, // Space below image (adjust if needed after moving)
+      borderRadius: 8, // Optional: rounded corners
+    },
+    detailText: {
+      fontSize: 16,
+      marginBottom: 8,
+    },
+    buttonContainer: {
+      flexDirection: 'row', // Arrange buttons side-by-side
+      justifyContent: 'space-around', // Space out buttons
+      paddingTop: 10, // Add some padding above buttons if needed
+      borderTopWidth: StyleSheet.hairlineWidth, // Optional separator line
+      borderTopColor: theme.colors.outlineVariant, // Optional separator color
+    },
+    modalButton: {
+      flex: 1, // Make buttons share space
+      marginHorizontal: 5, // Add space between buttons
+    },
+  });
+
+  // --- Render Loading State --- 
+  if (loading) {
+    return (
+      <View style={styles.centeredMessageContainer}>
+        <ActivityIndicator animating={true} size="large" />
+        <Text style={styles.messageText}>Loading marketplace...</Text>
+      </View>
+    );
+  }
+
+  // --- Render Error State --- 
+  if (error) {
+    return (
+      <View style={styles.centeredMessageContainer}>
+        <Text style={[styles.messageText, { color: theme.colors.error }]}>{error}</Text>
+        <Button mode="outlined" onPress={fetchMarketplaceItems} style={styles.retryButton}>Retry</Button>
+      </View>
+    );
+  }
+
+  // --- Render Content --- 
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollViewContent}>
+      {/* Section for Free Items */}
+      <View style={styles.sectionContainer}>
+        <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.primary }]}>
+          Free Items
+        </Text>
+        {freeItems.length > 0 ? (
+          <FlatList
+            data={freeItems}
+            renderItem={renderItem}
+            keyExtractor={(item) => `free-${item._id}`}
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 0 }} // Remove internal list padding
+          />
+        ) : (
+          <Text style={styles.emptySectionText}>No free items available right now.</Text>
+        )}
+      </View>
+
+      <Divider style={styles.divider} />
+
+      {/* Section for Paid Items */}
+      <View style={styles.sectionContainer}>
+        <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.primary }]}>
+          Other Items
+        </Text>
+        {paidItems.length > 0 ? (
+          <FlatList
+            data={paidItems}
+            renderItem={renderItem}
+            keyExtractor={(item) => `paid-${item._id}`}
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 0 }} // Remove internal list padding
+          />
+        ) : (
+          <Text style={styles.emptySectionText}>No other items available right now.</Text>
+        )}
+      </View>
+
+      {/* Display if both lists are empty after loading */}
+      {!loading && !error && freeItems.length === 0 && paidItems.length === 0 && (
+        <View style={styles.centeredMessageContainer}>
+          <Text style={styles.messageText}>Marketplace is empty.</Text>
+        </View>
+      )}
+      {/* --- Item Detail Modal --- */}
+      <Portal>
+        <Modal
+          visible={modalVisible}
+          onDismiss={handleModalDismiss}
+          contentContainerStyle={styles.modalContainer} // Use style for padding/margin
+        >
+          <Surface style={styles.modalSurface} elevation={4}>
+            {selectedItem && ( // Only render content if an item is selected
+              <>
+                {/* ScrollView for details - occupies available space */}
+                <ScrollView style={styles.modalScroll}> 
+                  <Text style={styles.modalTitle}>{selectedItem.title}</Text>
+                  {selectedItem.imageUri && (
+                    <Image
+                      source={{ uri: `${API_BASE_URL}/${selectedItem.imageUri.startsWith('/') ? selectedItem.imageUri.substring(1) : selectedItem.imageUri}` }}
+                      style={styles.modalImage}
+                      resizeMode="contain" // Ensure the entire image fits
+                    />
+                  )}
+                  <Text style={styles.detailText}>Producer: {selectedItem.producer || 'N/A'}</Text>
+                  <Text style={styles.detailText}>Price: {formatPrice(selectedItem)}</Text>
+                  <Text style={styles.detailText}>Description: {selectedItem.description || 'N/A'}</Text>
+                  <Text style={styles.detailText}>Origin: {formatOrigin(selectedItem.origin)}</Text>
+                  <Text style={styles.detailText}>Certifications: {cleanAndFormatCertifications(selectedItem.certifications)}</Text>
+                  <Text style={styles.detailText}>Expires: {selectedItem.expiryDate ? new Date(selectedItem.expiryDate).toLocaleDateString() : 'N/A'}</Text>
+                  <Text style={styles.detailText}>
+                    Location: {selectedItem.shareLocation 
+                      ? (locationName ?? 'Loading location...') 
+                      : 'Location not shared'}
+                  </Text>
+                  {/* Omitted: _id, userId, createdAt, contactInfo */}
+                </ScrollView>
+
+                {/* Button Container - Fixed at the bottom */}
+                <View style={styles.buttonContainer}> 
+                  <Button 
+                    mode="contained" 
+                    onPress={handleAddToCart} // Use defined handler
+                    style={styles.modalButton}
+                  >
+                    Add to Cart
+                  </Button>
+                  <Button 
+                    mode="outlined" 
+                    onPress={handleMessageSeller} // Use defined handler
+                    style={styles.modalButton}
+                  >
+                    Message Seller
+                  </Button>
+                </View>
+              </>
+            )}
+          </Surface>
+        </Modal>
+      </Portal>
+    </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  marketplaceSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    marginBottom: 15,
-  },
-  row: {
-    justifyContent: 'space-between', // Space between the cards in a row
-    marginBottom: 20, // Space between rows
-  },
-});
 
 export default HomeScreen;
