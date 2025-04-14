@@ -72,21 +72,26 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
-  buttonContainer: {
-    width: '100%',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },  
-  loginButton: {
-    flex: 1,
-    marginRight: 6, 
-  },
-  registerButton: {
-    flex: 1,
-  },
+buttonContainer: {
+  width: '100%',
+//   backgroundColor: 'rgba(255, 0, 0, 0.2)', // debug color
+},
+buttonRow: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+//   backgroundColor: 'rgba(0, 255, 0, 0.2)', // debug color
+},
+
+loginButton: {
+  flex: 1,
+  marginRight: 6,
+  minHeight: 40,
+},
+registerButton: {
+  flex: 1,
+  minHeight: 40,
+},
 });
 
 export default WelcomeScreen;
