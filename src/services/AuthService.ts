@@ -2,6 +2,12 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/types';
 
+// Define a simpler User type for search results if needed, or augment existing
+interface SearchUser {
+  _id: string;
+  username: string;
+}
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || (process.env.DEVICE_TYPE === 'android' ? 'http://10.0.2.2:3000/api/users' : 'http://localhost:3000/api/users');
 
 interface LoginCredentials {
@@ -14,6 +20,8 @@ interface RegisterCredentials extends LoginCredentials {
   email?: string;
   phone?: string;
 }
+
+
 
 class AuthService {
   async login(credentials: LoginCredentials) {
@@ -116,6 +124,39 @@ class AuthService {
   async getToken(): Promise<string | null> {
     return await AsyncStorage.getItem('userToken');
   }
+
+  // --- NEW: Search Users Method ---
+  async searchUsers(query: string): Promise<SearchUser[]> {
+    const token = await this.getToken();
+    if (!token) {
+      console.error('[AuthService] No authentication token for searching users');
+      throw new Error('Authentication required.');
+    }
+
+    if (!query || query.trim().length < 1) { // Don't search on empty or very short queries
+        return []; // Return empty array immediately
+    }
+
+
+    try {
+      console.log(`[AuthService] Searching users with query: ${query}`);
+      const response = await axios.get(`${API_URL}/search`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { q: query } // Pass the search query as a URL parameter
+      });
+      console.log(`[AuthService] User search successful, found ${response.data.length} users.`);
+      return response.data as SearchUser[]; // Cast to the expected array type
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'User search failed';
+      console.error(`[AuthService] User search failed: ${errorMessage}`, error.response?.data);
+      // Avoid throwing an error that crashes the app, maybe return empty array or handle differently
+      // throw errorMessage;
+      return []; // Return empty array on error to avoid crashing search UI
+    }
+  }
+
+
+
 }
 
 export default new AuthService();
