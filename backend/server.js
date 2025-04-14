@@ -69,10 +69,12 @@ const authMiddleware = require('./middleware/authMiddleware');
 const userRoutes = require('./routes/userRoutes');
 const foodItemsRoutes = require('./routes/foodItems');
 const listingRoutes = require('./routes/listingRoutes'); // Import listing routes
+const orderRoutes = require('./routes/orderRoutes'); // <-- Import Order Routes
 app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
 app.use('/api/messages', messagingRoutes);
 app.use('/api/listings', listingRoutes); // Mount listing routes for public access
+app.use('/api/orders', orderRoutes); // <-- Add this line
 
 // Apply authMiddleware selectively to routes that require authentication
 app.use('/api/users/profile', authMiddleware);
