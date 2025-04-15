@@ -16,11 +16,11 @@ cloudinary.config({
 // AI: Configure Multer for image uploads (similar to foodItems.js)
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Not an image! Please upload only images.'), false);
-  }
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Not an image! Please upload only images.'), false);
+    }
 };
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 
@@ -41,10 +41,10 @@ router.get('/', async (req, res) => {
 
         console.log(`[API] Found ${listings.length} listings (with populated usernames).`);
 
-        // Transform image URIs before sending (check if addFullPathToImageUri handles populated userId OK)
-        const listingsWithFullImagePaths = listings.map(addFullPathToImageUri);
+        // Convert Mongoose documents to plain objects if necessary before sending
+        const plainListings = listings.map(listing => listing.toObject ? listing.toObject() : listing);
 
-        res.status(200).json(listingsWithFullImagePaths);
+        res.status(200).json(plainListings); // Send listings directly
 
     } catch (error) {
         console.error('[API] Error fetching all listings:', error);
@@ -81,6 +81,109 @@ router.get('/:id', async (req, res) => {
              return res.status(400).json({ error: 'Invalid listing ID format' });
         }
         res.status(500).json({ error: 'Server error while fetching listing' });
+    }
+});
+
+// --- CREATE a new listing ---
+// Path: /api/listings
+// Access: Private (requires authentication)
+// Expects multipart/form-data due to potential image upload
+router.post('/', auth, upload.single('image'), async (req, res) => {
+    const userId = req.user.userId; // Get userId from authenticated user
+    console.log(`[API] POST /listings request received from user ${userId}.`);
+    console.log('[API POST /listings] Parsed req.body:', req.body);
+
+    let imageUrl = null; // Default to no image
+
+    try {
+        // --- Handle potential image upload ---
+        if (req.file) {
+            console.log(`[Cloudinary] Uploading image for new listing. File: ${req.file.originalname}`);
+            try {
+                const uploadResult = await new Promise((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                        { resource_type: 'image' },
+                        (error, result) => {
+                            if (error) reject(error);
+                            else resolve(result);
+                        }
+                    );
+                    uploadStream.end(req.file.buffer);
+                });
+
+                if (uploadResult && uploadResult.secure_url) {
+                    imageUrl = uploadResult.secure_url;
+                    console.log(`[Cloudinary] Image uploaded successfully. URL: ${imageUrl}`);
+                } else {
+                    console.error('[Cloudinary] Upload failed or did not return a secure_url.');
+                    // Decide how to handle: proceed without image or return error?
+                    // For now, proceed without image URL.
+                }
+            } catch (uploadError) {
+                console.error('[Cloudinary] Error uploading image:', uploadError);
+                // Decide how to handle: proceed without image or return error?
+                // For now, proceed without image URL. Maybe return 500 later if image is required.
+            }
+        } else {
+            console.log('[API] No image file provided for new listing.');
+        }
+
+        // --- Prepare listing data ---
+        const {
+            title, producer, description, price, origin, certifications, expiryDate,
+            unitType, quantity, sizeMeasurement, contactMethod, shareLocation, location // Include location
+        } = req.body;
+
+        const listingData = {
+            userId, // Associate listing with the logged-in user
+            title,
+            producer,
+            description,
+            price: parseFloat(price) || 0, // Ensure price is a number
+            origin,
+            certifications: certifications ? certifications.split(',').map(cert => cert.trim()).filter(cert => cert) : [], // Handle string array
+            expiryDate,
+            unitType,
+            quantity: parseInt(quantity, 10) || 0, // Ensure quantity is a number
+            sizeMeasurement,
+            contactMethod,
+            shareLocation: shareLocation === 'true', // Convert string to boolean
+            imageUri: imageUrl, // Use the Cloudinary URL
+        };
+
+        // --- Handle Location Data ---
+        if (location) {
+            try {
+                const parsedLocation = JSON.parse(location); // Expecting {"latitude": number, "longitude": number}
+                if (parsedLocation.latitude != null && parsedLocation.longitude != null) {
+                    listingData.location = {
+                        type: 'Point',
+                        coordinates: [parsedLocation.longitude, parsedLocation.latitude] // GeoJSON format [longitude, latitude]
+                    };
+                    console.log('[API] Parsed and set location:', listingData.location);
+                } else {
+                    console.warn('[API] Received location data missing latitude or longitude:', parsedLocation);
+                }
+            } catch (parseError) {
+                console.error('[API] Error parsing location JSON string:', location, parseError);
+                // Decide how to handle: skip location, return error? For now, skip.
+            }
+        }
+
+        // --- Create and Save the new Listing ---
+        console.log('[API] Attempting to create listing with data:', listingData);
+        const newListing = new FoodItem(listingData);
+        await newListing.save();
+        console.log('[API] New listing created successfully:', newListing._id);
+
+        res.status(201).json(newListing); // Return the newly created listing
+
+    } catch (error) {
+        console.error('[API] Error creating new listing:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: `Validation failed: ${error.message}` });
+        }
+        res.status(500).json({ error: 'Server error while creating listing' });
     }
 });
 

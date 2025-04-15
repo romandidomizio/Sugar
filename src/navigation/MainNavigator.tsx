@@ -147,14 +147,14 @@ const MainNavigator = () => {
         //     return null;
         //   },
         // })}
-        initialRouteName="ComponentPlayground" // Change to Loading or Welcome for production
+        initialRouteName="Welcome" // Change to Loading or Welcome for production
       >
         {/* Screens without the main CustomNavigationBar by default */}
-        <Stack.Screen
+        {/* <Stack.Screen
           name="ComponentPlayground"
           component={ComponentPlaygroundScreen}
           options={{ headerShown: false }} // Explicitly hide header
-        />
+        /> */}
         <Stack.Screen
           name="Loading"
           component={LoadingScreen}

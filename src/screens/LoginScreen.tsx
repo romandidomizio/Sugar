@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity ,Image} from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useTheme, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,7 +16,7 @@ type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
-  Register: undefined;
+  BottomTab: undefined;
 };
 
 const LoginSchema = Yup.object().shape({
@@ -25,7 +26,8 @@ const LoginSchema = Yup.object().shape({
 
 const LoginScreen: React.FC = () => {
   const theme = useTheme();
-  const navigation = useNavigation();
+  type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+  const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login, state, clearError } = useAppContext();
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -70,30 +72,37 @@ const LoginScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const loadCredentials = async (setFieldValue: (field: string, value: any) => void) => {
+    try {
+      const savedUsername = await AsyncStorage.getItem('username');
+      const savedPassword = await AsyncStorage.getItem('password');
+      if (savedUsername && savedPassword) {
+        setFieldValue('username', savedUsername);
+        setFieldValue('password', savedPassword);
+        setRememberMe(true);
+      }
+    } catch (error) {
+      console.error('Failed to load credentials:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { paddingTop: 100 }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      keyboardVerticalOffset={20}
+      enabled
     >
-      <View style={styles.content}>
-    {/* REMOVE THIS TEXT COMPONENT:
-    <Text
-      variant="headlineLarge"
-      style={[
-        styles.title,
-        { color: theme.colors.primary } // Color doesn't apply to Image
-      ]}
-    >
-      Sugar
-    </Text>
-    */}
-
-    {/* ADD THIS IMAGE COMPONENT INSTEAD: */}
-    <Image
-        source={require('../../assets/sugar_logo.gif')} // <-- Adjust path if needed (likely same as LoadingScreen)
-        style={styles.logo} // We will define this style below
-        resizeMode="contain"
-    />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={false}
+      >
+        <Image
+          source={require('../../assets/sugar_logo.gif')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
         <Formik
           initialValues={{ username: '', password: '' }}
@@ -155,8 +164,8 @@ const LoginScreen: React.FC = () => {
                 </View>
 
                 <PaperButton
-                  mode="contained"
-                  onPress={handleSubmit}
+                  variant="primary"
+                  onPress={() => handleSubmit()}
                   style={styles.loginButton}
                   width="full"
                 >
@@ -184,7 +193,7 @@ const LoginScreen: React.FC = () => {
           confirmText="Try Again"
           onConfirm={handleErrorModalDismiss}
         />
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -192,24 +201,18 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgb(161, 194, 175)'
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 20,
+  logo: { 
+    width: 200,       
+    height: 200,      
+    alignSelf: 'center', 
   },
-    logo: { // <-- ADD THIS STYLE
-      width: 200,       // Adjust width as needed
-      height: 200,      // Adjust height as needed
-      alignSelf: 'center', // Ensure the logo itself is centered horizontally
-      marginBottom: 30, // Space below the logo (adjust as needed)
-    },
   formContainer: {
     width: '100%',
   },

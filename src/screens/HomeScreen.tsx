@@ -240,7 +240,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             style: 'cancel',
           },
           {
-            text: 'Go to Cart',
+            text: 'Go to Favorites',
             onPress: () => {
               handleModalDismiss(); // Close modal first
               navigation.navigate('Cart'); // Navigate to Cart screen
