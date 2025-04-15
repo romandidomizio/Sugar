@@ -60,7 +60,9 @@ interface MarketplaceItem {
   expiryDate?: string;
   contactInfo?: string; // Optional: Added based on usage (but hidden in modal)
   contactMethod?: 'Direct Message' | 'Phone Call' | 'Text' | 'Email'; // Assume specific values
-  userId: string;
+//   userId: string;
+    userId: { _id: string; username: string }; // Allow populated object (or string if sometimes not populated)
+
   createdAt: string;
   shareLocation?: boolean; // Optional: Added based on usage
   unitType?: string; // Optional: Added based on usage
@@ -230,7 +232,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       // Show confirmation alert with navigation options
       Alert.alert(
         'Item Added',
-        `${selectedItem.title} has been added to your cart.`,
+        `${selectedItem.title} has been added to your favorites.`,
         [
           {
             text: 'Keep Shopping',
@@ -811,6 +813,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                       </View>
                     );
                   })()}
+                              {/* --- MODIFIED LINE --- */}
+                              <Text style={styles.detailText}>
+                                Seller: {selectedItem?.userId?.username || 'N/A'}
+                              </Text>
+                              {/* --------------------- */}
                   <Text style={styles.detailText}>Producer: {selectedItem.producer || 'N/A'}</Text>
                   <Text style={styles.detailText}>Price: {formatPrice(selectedItem)}</Text>
                   <Text style={styles.detailText}>Description: {selectedItem.description || 'N/A'}</Text>
@@ -836,12 +843,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
                 {/* Button Container - Fixed at the bottom */}
                 <View style={styles.buttonContainer}> 
-                  <Button 
-                    mode="contained" 
-                    onPress={handleAddToCart} // Use defined handler
-                    style={styles.modalButton}
-                  >
-                    Add to Cart
+<Button
+  mode="contained"
+  icon="heart" // Or "heart-outline"
+  onPress={handleAddToCart}
+  style={styles.modalButton}
+>
+                    Add
                   </Button>
                   <Button 
                     mode="outlined" 

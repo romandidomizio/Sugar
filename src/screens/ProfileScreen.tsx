@@ -77,8 +77,8 @@ const ProfileScreen: React.FC = () => {
           </View>
 
           <View style={styles.infoRow}>
-            <Text variant="titleMedium" style={styles.infoLabel}>Account Type:</Text>
-            <Text variant="bodyLarge" style={{ textTransform: 'capitalize' }}>{user.role || 'User'}</Text>
+            <Text variant="titleMedium" style={styles.infoLabel}>Account Status:</Text>
+            <Text variant="bodyLarge" style={{ textTransform: 'capitalize' }}>{ 'Verified' || user.role}</Text>
           </View>
         </View>
 

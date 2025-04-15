@@ -27,16 +27,25 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 // --- GET all listings ---
 // Path: /api/listings
 // Access: Public (for marketplace display)
+// --- GET all listings ---
 router.get('/', async (req, res) => {
     console.log('[API] GET /listings (all) request received.');
     try {
-        // Fetch all items and sort by createdAt descending (newest first)
-        const listings = await FoodItem.find({}).sort({ createdAt: -1 });
-        
-        console.log(`[API] Found ${listings.length} listings.`);
-        
-        res.status(200).json(listings); // Send listings directly
-        
+        // Fetch all items AND POPULATE userId -> username
+        const listings = await FoodItem.find({})
+            .populate({ // <<< ADD POPULATE HERE
+                path: 'userId',
+                select: 'username'
+            })
+            .sort({ createdAt: -1 }); // Keep sorting
+
+        console.log(`[API] Found ${listings.length} listings (with populated usernames).`);
+
+        // Transform image URIs before sending (check if addFullPathToImageUri handles populated userId OK)
+        const listingsWithFullImagePaths = listings.map(addFullPathToImageUri);
+
+        res.status(200).json(listingsWithFullImagePaths);
+
     } catch (error) {
         console.error('[API] Error fetching all listings:', error);
         res.status(500).json({ error: 'Server error while fetching listings' });
@@ -50,6 +59,11 @@ router.get('/:id', async (req, res) => {
     console.log(`[API] GET /listings/${req.params.id} request received.`);
     try {
         const listing = await FoodItem.findById(req.params.id);
+//        const listing = await FoodItem.findById(req.params.id)
+//            .populate({
+//                path: 'userId',     // The field in your FoodItem model that references User
+//                select: 'username' // Specify that you want the 'username' field from the User document
+//            });
 
         if (!listing) {
             console.log(`[API] Listing not found for ID: ${req.params.id}`);
