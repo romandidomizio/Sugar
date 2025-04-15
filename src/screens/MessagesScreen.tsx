@@ -590,9 +590,8 @@
 
 
 //ADDING NEW MESSAGE BUTTON:
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native'; // Removed Pressable as List.Item has onPress
+import { View, StyleSheet, FlatList,TextInput } from 'react-native'; // Removed Pressable as List.Item has onPress
 import { useTheme, Text, Divider, SegmentedButtons, List, Avatar, ActivityIndicator, IconButton } from 'react-native-paper'; // <-- Import IconButton
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -631,6 +630,8 @@ const MessagesScreen: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const [notes, setNotes] = useState(''); // <-- Add state for the notes text
+
 
   const loadConversations = useCallback(async () => {
     // ... (keep existing loadConversations function)
@@ -697,12 +698,18 @@ const MessagesScreen: React.FC = () => {
      // ... (keep existing renderContent function)
      if (activeTab === 'notifications') {
       return (
-        <>
-          
-          <Text variant="bodyLarge" style={styles.placeholderText}>
-            Notifications coming soon!
-          </Text>
-        </>
+        // Use a View to contain the TextInput and apply padding/flex
+        <View style={styles.notesContainer}>
+          <TextInput
+            style={[styles.notesInput, { color: theme.colors.onSurface, borderColor: theme.colors.outline }]} // Apply style and theme colors
+            multiline={true} // Allow multiple lines
+            placeholder="Jot down your notes here..."
+            placeholderTextColor={theme.colors.onSurfaceDisabled} // Use theme color for placeholder
+            value={notes} // Bind value to the 'notes' state
+            onChangeText={setNotes} // Update 'notes' state when text changes
+            textAlignVertical="top" // Keep cursor at the top on Android
+          />
+        </View>
       );
     }
 
@@ -761,7 +768,7 @@ const MessagesScreen: React.FC = () => {
           onValueChange={setActiveTab}
           buttons={[
             { value: 'messages', label: 'Messages' },
-            { value: 'notifications', label: 'Notifications' },
+            { value: 'notifications', label: 'Notes' },
           ]}
           style={styles.segmentedButtons}
         />
@@ -817,6 +824,25 @@ const styles = StyleSheet.create({
       paddingVertical: 10,
       backgroundColor: 'transparent',
   },
+    contentContainer: {
+      flex: 1,
+      // Remove paddingHorizontal if you want the notes container to handle it
+      // paddingHorizontal: 0, // Keep or remove based on desired look
+    },
+
+    // --- NEW STYLES ---
+    notesContainer: {
+      flex: 1, // Make the container fill the available space in contentContainer
+      padding: 15, // Add padding around the text input
+    },
+    notesInput: {
+      flex: 1, // Make the TextInput fill the notesContainer
+      borderWidth: 1,
+      borderRadius: 8, // Optional: rounded corners
+      padding: 10, // Internal padding for text
+      fontSize: 16,
+      // textAlignVertical: 'top' is set inline for Android compatibility
+    },
   timestamp: {
       alignSelf: 'center',
       fontSize: 12,
