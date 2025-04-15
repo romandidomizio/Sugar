@@ -19,7 +19,7 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
   const EmptyCart = () => (
     <View style={styles.emptyContainer}>
       <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
-        Your cart is empty
+        No favorited items yet
       </Text>
       <Text variant="bodyLarge" style={styles.emptyText}>
         Add items from the marketplace to start shopping!
@@ -47,7 +47,7 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
   const handleClearCart = () => {
     Alert.alert(
       'Clear Cart',
-      'Are you sure you want to remove all items from your cart?',
+      'Are you sure you want to remove all items from your favorites?',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Clear', style: 'destructive', onPress: () => clearCart() }
@@ -99,7 +99,7 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
           variant="headlineLarge"
           style={[styles.title, { color: theme.colors.primary }]}
         >
-          Your Cart
+          Your Favorites
         </Text>
       </View>
 

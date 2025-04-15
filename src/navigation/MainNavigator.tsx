@@ -109,7 +109,7 @@ const CustomNavigationBar = ({ navigation, back, route }: any) => {
         />
       </TouchableOpacity>
       <Appbar.Content title="" />
-      <Appbar.Action icon="cart" onPress={() => navigation.navigate('Cart')} />
+      <Appbar.Action icon="heart" onPress={() => navigation.navigate('Cart')} />
       <Appbar.Action icon="bell" onPress={() => navigation.navigate('Notifs')} />
       <Appbar.Action icon="account" onPress={() => navigation.navigate('Profile')} />
     </Appbar.Header>
