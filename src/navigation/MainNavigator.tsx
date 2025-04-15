@@ -109,8 +109,15 @@ const CustomNavigationBar = ({ navigation, back, route }: any) => {
         />
       </TouchableOpacity>
       <Appbar.Content title="" />
-      <Appbar.Action icon="heart" onPress={() => navigation.navigate('Cart')} />
-      <Appbar.Action icon="bell" onPress={() => navigation.navigate('Notifs')} />
+            {/* MODIFIED Notification (Bell) Button */}
+            <Appbar.Action
+              icon="bell"
+//               onPress={() => {}} // Optional: Set to no-op function, though disabled should prevent it
+              disabled={true}    // Disable the button's functionality
+              style={{ opacity: 0 }} // Make the button completely transparent (invisible)
+            />
+                  <Appbar.Action icon="heart" onPress={() => navigation.navigate('Cart')} />
+
       <Appbar.Action icon="account" onPress={() => navigation.navigate('Profile')} />
     </Appbar.Header>
   );
