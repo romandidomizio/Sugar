@@ -37,7 +37,7 @@ import { TouchableOpacity, Image } from 'react-native';
 // Type for screens within the Bottom Tab Navigator
 export type BottomTabParamList = {
   Home: undefined; // No params expected
-  Community: undefined;
+ // Community: undefined;
   Post: { listingId?: string }; // Add optional listingId for editing
   'My Listings': undefined;
   Messages: undefined;
@@ -255,9 +255,11 @@ const MainBottomTabNavigator = () => {
           let iconName: string = 'help-circle'; // Default fallback icon
           if (route.name === 'Home') {
             iconName = 'home';
-          } else if (route.name === 'Community') {
-            iconName = 'account-group';
-          } else if (route.name === 'My Listings') {
+          }
+//       else if (route.name === 'Community') {
+//             iconName = 'account-group';
+//           }
+      else if (route.name === 'My Listings') {
             iconName = 'clipboard-list';
           } else if (route.name === 'Post') {
             iconName = 'plus-circle';
@@ -274,7 +276,7 @@ const MainBottomTabNavigator = () => {
     >
       {/* Define screens within the BottomTab navigator */}
       <Tab.Screen name="Home" component={HomeScreen} options={{ headerTitle: 'Home' }} />
-      <Tab.Screen name="Community" component={CommunityScreen} options={{ headerTitle: 'Community' }} />
+     {/* <Tab.Screen name="Community" component={CommunityScreen} options={{ headerTitle: 'Community' }} />*/}
       <Tab.Screen name="Post" component={PostScreen} options={{ headerTitle: 'Post' }} />
       <Tab.Screen name="My Listings" component={MyListingsScreen} options={{ headerTitle: 'My Listings' }} />
       <Tab.Screen name="Messages" component={MessagesScreen} options={{ headerTitle: 'Messages' }} />
