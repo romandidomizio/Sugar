@@ -126,10 +126,23 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
             </View>
 
             <View style={styles.buttonContainer}>
-              <PaperButton variant="tertiary" size="small" onPress={handleClearCart}>
+              {/* --- Modified Clear Cart Button --- */}
+              <PaperButton
+                variant="tertiary"
+                size="small"
+                onPress={() => {}} // Optional: Set to no-op, disabled is key
+                disabled={true}    // Disable interaction
+                style={{ opacity: 0 }} // Make invisible
+              >
                 Clear Cart
               </PaperButton>
-              <PaperButton variant="primary" onPress={handleCheckout}>
+              {/* --- Modified Checkout Button --- */}
+              <PaperButton
+                variant="primary"
+                onPress={() => {}} // Optional: Set to no-op, disabled is key
+                disabled={true}    // Disable interaction
+                style={{ opacity: 0 }} // Make invisible
+              >
                 Checkout
               </PaperButton>
             </View>
