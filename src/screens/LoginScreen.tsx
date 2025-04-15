@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity ,Image} from 'react-native';
 import { useTheme, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { Formik } from 'formik';
@@ -76,15 +76,24 @@ const LoginScreen: React.FC = () => {
       style={[styles.container, { paddingTop: 100 }]}
     >
       <View style={styles.content}>
-        <Text 
-          variant="headlineLarge" 
-          style={[
-            styles.title, 
-            { color: theme.colors.primary }
-          ]}
-        >
-          Sugar
-        </Text>
+    {/* REMOVE THIS TEXT COMPONENT:
+    <Text
+      variant="headlineLarge"
+      style={[
+        styles.title,
+        { color: theme.colors.primary } // Color doesn't apply to Image
+      ]}
+    >
+      Sugar
+    </Text>
+    */}
+
+    {/* ADD THIS IMAGE COMPONENT INSTEAD: */}
+    <Image
+        source={require('../../assets/sugar_logo.gif')} // <-- Adjust path if needed (likely same as LoadingScreen)
+        style={styles.logo} // We will define this style below
+        resizeMode="contain"
+    />
 
         <Formik
           initialValues={{ username: '', password: '' }}
@@ -183,16 +192,24 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'rgb(161, 194, 175)'
   },
   content: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   title: {
     textAlign: 'center',
     marginBottom: 20,
   },
+    logo: { // <-- ADD THIS STYLE
+      width: 200,       // Adjust width as needed
+      height: 200,      // Adjust height as needed
+      alignSelf: 'center', // Ensure the logo itself is centered horizontally
+      marginBottom: 30, // Space below the logo (adjust as needed)
+    },
   formContainer: {
     width: '100%',
   },

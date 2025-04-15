@@ -55,6 +55,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Middleware
+app.use(express.json()); // Parse JSON bodies
 app.use(expressSanitizer()); // Sanitize inputs
 
 // Log the static path being used
