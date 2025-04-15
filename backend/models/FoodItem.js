@@ -23,8 +23,9 @@ const FoodItemSchema = new mongoose.Schema({
     required: true
   },
   price: {
-    type: String,
-    required: true
+    type: Number, // AI: Changed type to Number for proper validation
+    required: [true, 'Price is required.'],
+    min: [0, 'Price cannot be negative.'] // AI: Allow 0, prevent negative values
   },
   description: {
     type: String,

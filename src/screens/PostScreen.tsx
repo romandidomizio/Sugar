@@ -182,6 +182,7 @@ const createStyles = (theme: MD3Theme) => StyleSheet.create({
     marginBottom: 4,
   },
   customCheckboxGroupContainer: {
+    marginLeft: 12,
     marginBottom: 4,
   },
   customCheckboxGroupLabel: {
@@ -271,6 +272,7 @@ const createStyles = (theme: MD3Theme) => StyleSheet.create({
     color: theme.colors.onSurfaceVariant,
   },
   switchRowContainer: {
+    marginHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -719,6 +721,7 @@ const PostScreen: React.FC = () => {
                 error={submitCount > 0 && touched.price && !!errors.price}
                 style={styles.input}
                 keyboardType="decimal-pad"
+                mode="outlined"
                 // Add dollar sign prefix using the 'left' prop
                 left={<TextInput.Affix text="$" textStyle={styles.prefixTextStyle} />}
               />
@@ -770,6 +773,7 @@ const PostScreen: React.FC = () => {
                     value={values.quantity.toString()}
                     error={submitCount > 0 && Boolean(touched.quantity && errors.quantity)}
                     style={styles.input} 
+                    mode="outlined"
                   />
                   <HelperText type="error" visible={submitCount > 0 && Boolean(touched.quantity && errors.quantity)}>
                     {errors.quantity}

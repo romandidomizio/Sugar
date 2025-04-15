@@ -187,6 +187,12 @@ const MyListingsScreen: React.FC = () => {
     createButton: {
       marginTop: 16,
     },
+    placeholderImage: {
+      backgroundColor: theme.colors.surfaceVariant, // Use a subtle background color
+      justifyContent: 'center', // Center the text vertically
+      alignItems: 'center', // Center the text horizontally
+      height: 150, // Ensure placeholder has a height like the image
+    },
   });
 
   // --- Render Item for FlatList ---
@@ -197,24 +203,25 @@ const MyListingsScreen: React.FC = () => {
     // Format the description string
     const descriptionString = `Producer: ${item.producer}\nExpires: ${new Date(item.expiryDate).toLocaleDateString()}`;
 
+    // Determine the image source correctly
+    const imageSource = item.imageUri && (item.imageUri.startsWith('http://') || item.imageUri.startsWith('https://'))
+      ? { uri: item.imageUri }
+      : null; // Or require('../assets/placeholder.png');
+
     return (
       <List.Item
         title={item.title}
         description={`${priceString}\n${descriptionString}`}
         descriptionNumberOfLines={3} // Increase lines for new format
-        left={props => {
-          // Construct the full, safe image URI
-          const imageSource = item.imageUri 
-            ? { uri: `${API_BASE_URL}/${item.imageUri.startsWith('/') ? item.imageUri.substring(1) : item.imageUri}` }
-            : require('../../assets/icon.png'); // Fallback image if needed
-            
-          // Log the constructed URI for debugging
-          if(item.imageUri) {
-            console.log(`[MyListingsScreen] Image URI for ${item.title}: ${imageSource.uri}`);
-          }
-
-          return <Avatar.Image {...props} size={50} source={imageSource} />;
-        }}
+        left={props => (
+          imageSource ? (
+            <Avatar.Image {...props} size={50} source={imageSource} />
+          ) : (
+            <View style={[styles.placeholderImage]}>
+              <Text style={styles.placeholderText}>No Image</Text>
+            </View>
+          )
+        )}
         right={props => (
           <><View {...props} style={styles.actionIcon1Container}>
             {/* Wrap edit icon in TouchableOpacity to make it pressable */}

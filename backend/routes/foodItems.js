@@ -3,24 +3,19 @@ const router = express.Router();
 const FoodItem = require('../models/FoodItem');
 const User = require('../models/User'); // Added User model
 const multer = require('multer');
-const path = require('path');
 const jwt = require('jsonwebtoken');
+const { v2: cloudinary } = require('cloudinary'); // Import Cloudinary
+
+// Configure Cloudinary (ensure environment variables are set in .env)
+cloudinary.config({ 
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+    api_key: process.env.CLOUDINARY_API_KEY, 
+    api_secret: process.env.CLOUDINARY_API_SECRET 
+});
 
 // --- Multer Configuration ---
-// Ensure the 'uploads' directory exists at the root of the 'backend' folder
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Construct an absolute path to the uploads directory
-    // __dirname resolves to the directory of the current file (backend/routes)
-    // path.join goes up one level ('..') and then into 'uploads'
-    const uploadPath = path.join(__dirname, '..', 'uploads');
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    // Create a unique filename: fieldname-timestamp.ext
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  }
-});
+// Switch to memoryStorage to handle file buffer directly
+const storage = multer.memoryStorage();
 
 // Basic file filter (optional: add more specific checks like mime type)
 const fileFilter = (req, file, cb) => {
@@ -166,25 +161,49 @@ router.post('/user/listings', requireAuth, upload.single('image'), async (req, r
     }
     console.log(`[Contact Info] Using contactInfo for user ${req.user._id}: ${userContactInfo}`);
 
-    // 4. Construct the new FoodItem object
+    // 4. Handle Image Upload to Cloudinary (if image exists)
+    let imageUrl = null; // Default to null if no image is uploaded
+    if (req.file) {
+        console.log(`[Cloudinary] Uploading file from buffer: ${req.file.originalname}`);
+        try {
+            // Upload from buffer requires converting buffer to data URI or using upload_stream
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
+            
+            const uploadResult = await cloudinary.uploader.upload(dataURI, {
+                // Optional: Add upload options like folder, public_id etc.
+                // folder: "food_items" 
+                // resource_type: 'auto' // Let Cloudinary detect resource type
+            });
+            imageUrl = uploadResult.secure_url; // Get the HTTPS URL from Cloudinary
+            console.log(`[Cloudinary] Upload successful: ${imageUrl}`);
+            // No temporary file to delete when using memoryStorage
+        } catch (uploadError) {
+            console.error('[Cloudinary] Upload Error:', uploadError);
+            // Decide if you want to proceed without an image or return an error
+            // return res.status(500).json({ error: 'Failed to upload image to cloud storage.', details: uploadError.message }); 
+            // For now, let's proceed without image if upload fails
+            imageUrl = null; // Ensure imageUrl is null if upload failed
+            console.log('[Cloudinary] Proceeding without image due to upload error.');
+        }
+    } else {
+        console.log('[Cloudinary] No image file provided in the request.');
+    }
+
+    // 5. Construct the new FoodItem object
     const newFoodItemData = {
       ...listingData,
       userId: req.user._id, // Add userId from authenticated user
       contactInfo: userContactInfo, // Add fetched contact info
-      imageUri: req.file ? `/uploads/${req.file.filename}` : null, // Use relative path for image URL
-       // Ensure location is structured correctly for GeoJSON Point or null
-       location: listingData.shareLocation && listingData.location ? {
-           type: 'Point',
-           coordinates: [listingData.location.longitude, listingData.location.latitude]
-       } : null,
+      imageUri: imageUrl, // Use the Cloudinary URL or null
+      location: (listingData.shareLocation && listingData.location?.coordinates?.length === 2) 
+                ? { type: 'Point', coordinates: listingData.location.coordinates } 
+                : null, // Set location or null based on shareLocation flag
     };
-     // Remove shareLocation as it's not part of the FoodItem model schema itself
-     delete newFoodItemData.shareLocation;
+    // Remove shareLocation as it's not part of the schema
+    delete newFoodItemData.shareLocation;
 
-     // console.log('Constructed newFoodItemData for save:', newFoodItemData);
-
-
-    // 5. Save to Database
+    // 6. Save to Database
     const foodItem = new FoodItem(newFoodItemData);
     await foodItem.save();
     console.log('FoodItem saved successfully:', foodItem._id);
@@ -283,12 +302,40 @@ router.put('/user/listings/:id', requireAuth, upload.single('image'), async (req
     // 4. Prepare update data (similar to POST, but merging with existing)
     const updateData = { ...listingData }; // Start with new data
 
+    // --- QUANTITY HANDLING --- 
+    // If unitType is 'size' and quantity is null (sent from frontend for empty input),
+    // remove quantity from the update payload entirely to prevent validation issues.
+    if (updateData.unitType === 'size' && updateData.quantity === null) {
+      console.log('[PUT /user/listings/:id] unitType is size and quantity is null, removing quantity from update payload.');
+      delete updateData.quantity;
+    }
+    // --- END QUANTITY HANDLING ---
+
     // Handle image update
     if (req.file) {
-      updateData.imageUri = `/uploads/${req.file.filename}`;
-      console.log(`[PUT /user/listings/:id] New image uploaded: ${updateData.imageUri}`);
+      console.log(`[Cloudinary] Uploading file from buffer for update: ${req.file.originalname}`);
+      try {
+        // Upload from buffer requires converting buffer to data URI or using upload_stream
+        const b64 = Buffer.from(req.file.buffer).toString('base64');
+        let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
+
+        const uploadResult = await cloudinary.uploader.upload(dataURI, {
+          // Optional: Add upload options like folder, public_id etc.
+          // folder: "food_items" 
+          // resource_type: 'auto'
+        });
+        updateData.imageUri = uploadResult.secure_url; // Get the HTTPS URL from Cloudinary
+        console.log(`[Cloudinary] Update upload successful: ${updateData.imageUri}`);
+        // No temporary file to delete
+      } catch (uploadError) {
+        console.error('[Cloudinary] Update Upload Error:', uploadError);
+        // Decide if you want to proceed without an image or return an error
+        // return res.status(500).json({ error: 'Failed to upload image to cloud storage.', details: uploadError.message }); 
+        // For now, let's proceed without image if upload fails
+        updateData.imageUri = null; // Ensure imageUrl is null if upload failed
+        console.log('[Cloudinary] Proceeding without image due to upload error.');
+      }
     } else {
-      // If no new file is uploaded, keep the existing imageUri (or handle removal if needed)
       updateData.imageUri = foodItem.imageUri; // Keep existing image if no new one uploaded
       // TODO: Add logic here if frontend sends a flag to specifically remove the image.
     }

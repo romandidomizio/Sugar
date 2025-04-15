@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const expressSanitizer = require('express-sanitizer');
 const connectDB = require('./config/database');
 const mongoose = require('mongoose');
+const multer = require('multer'); // AI: Import multer for handling multipart/form-data
 
 // Import Messaging Routes
 const messagingRoutes = require('./routes/messages');
@@ -58,10 +59,10 @@ app.use(limiter);
 app.use(express.json()); // Parse JSON bodies
 app.use(expressSanitizer()); // Sanitize inputs
 
-// Log the static path being used
-const staticPath = path.join(__dirname, 'uploads');
-console.log(`[Server] Serving static files from: ${staticPath}`);
-app.use('/uploads', express.static(staticPath)); // Serve static files using absolute path
+// REMOVED: Static file serving for local uploads
+// const staticPath = path.join(__dirname, 'uploads');
+// console.log(`[Server] Serving static files from: ${staticPath}`);
+// app.use('/uploads', express.static(staticPath)); 
 
 // Review authentication middleware
 const authMiddleware = require('./middleware/authMiddleware');
@@ -73,10 +74,8 @@ const listingRoutes = require('./routes/listingRoutes'); // Import listing route
 app.use('/api/users', userRoutes);
 app.use('/api', foodItemsRoutes);
 app.use('/api/messages', messagingRoutes);
+// AI: Removed global auth middleware for listings. It will be applied selectively within listingRoutes.js
 app.use('/api/listings', listingRoutes); // Mount listing routes for public access
-
-// Apply authMiddleware selectively to routes that require authentication
-app.use('/api/users/profile', authMiddleware);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -25,10 +25,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery, plac
 
 const styles = StyleSheet.create({
   container: {
-    margin: 16,
+    margin: 12,
+    // AI: Remove padding from container if height is set on input
+    // padding: 0, 
   },
   input: {
     backgroundColor: 'white',
+    height: 40, // AI: Set the desired height for the TextInput
   },
 });
 

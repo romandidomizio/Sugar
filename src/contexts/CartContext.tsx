@@ -5,7 +5,7 @@ export interface CartItem {
   id: string;
   title: string;
   producer: string;
-  price: string;
+  price: number;
   description: string;
   imageUri: string;
   quantity: number;
@@ -80,24 +80,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Calculate total using useMemo, dependent on items
   const total = useMemo(() => {
     return items.reduce((acc, item) => {
-      // Ensure price is treated as a string for regex matching
-      const priceString = String(item.price);
-      const priceMatch = priceString.match(/\$?([0-9.]+)/); // Allow optional $ prefix
-
-      if (!priceMatch) {
-        console.warn(`Could not parse price for item ${item.title}: ${item.price}`);
-        return acc;
-      }
-
-      const priceValue = parseFloat(priceMatch[1]);
+      const priceValue = item.price;
 
       // Ensure priceValue is a valid number
-      if (isNaN(priceValue)) {
-        console.warn(`Parsed price is NaN for item ${item.title}: ${item.price}`);
+      if (typeof priceValue !== 'number' || isNaN(priceValue)) {
+        console.warn(`Invalid price detected for item ${item.title}:`, item.price);
         return acc;
       }
 
-      return acc + priceValue * item.quantity;
+      // Ensure quantity is valid
+      const quantityValue = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
+
+      return acc + priceValue * quantityValue;
     }, 0); // Initial accumulator value is 0
   }, [items]); // Dependency array ensures recalculation only when items change
 

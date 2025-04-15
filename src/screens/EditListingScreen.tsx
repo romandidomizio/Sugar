@@ -1,83 +1,34 @@
-import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Image,
-  Platform,
-  Alert,
-  Text,
-  Dimensions,
-} from 'react-native';
-import {
-  TextInput,
-  Button,
-  RadioButton,
-  Switch,
-  HelperText,
-  useTheme,
-  Menu,
-  TouchableRipple,
-  ActivityIndicator,
-  Snackbar,
-  Divider,
-  MD3Theme, // Import MD3Theme type
-} from 'react-native-paper';
-import { Formik, FormikProps, FormikHelpers } from 'formik';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, ScrollView, Image, Platform, Alert, StyleSheet, Dimensions } from 'react-native';
+import { TextInput, Button, Text, HelperText, useTheme, ActivityIndicator, Switch, Modal, RadioButton, MD3Theme } from 'react-native-paper';
+import { Formik, FormikProps, FormikErrors } from 'formik';
 import * as Yup from 'yup';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { Dropdown } from 'react-native-paper-dropdown';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import axios from 'axios';
+
+// --- Project Imports ---
 import { useAppContext } from '../contexts/AppContext';
 import axiosInstance from '../utils/axiosInstance';
-import { API_BASE_URL } from '@env';
-import CustomMultiSelect from '../components/CustomMultiSelect';
 import { RootStackParamList } from '../navigation/MainNavigator';
+import CustomMultiSelect from '../components/CustomMultiSelect';
+import CustomCheckbox from '../components/CustomCheckbox';
 
-// --- Type Definitions --- 
-
-// Type for the form values
-interface FormValues {
-  title: string;
-  producer: string;
-  price: string; // Changed from number to string
-  unitType: 'unit' | 'size' | '';
-  quantity: string; // Keep as string for input handling
-  sizeMeasurement: string;
-  description: string;
-  origin: string;
-  certifications: string[];
-  contactMethod: 'Email' | 'Phone' | 'Direct Message' | '';
-  expiryDate: Date | null;
-  shareLocation: boolean;
-  location: { latitude: number; longitude: number; type?: 'Point'; coordinates?: [number, number] } | null; // Include backend structure possibility
-  imageUri: string | null; // URI for display/upload
-  // Helper fields for Formik, not sent directly to backend
-  imageName?: string;
-  imageType?: string;
-  // Field to track if a *new* image has been selected by the user
-  newImageSelected?: boolean; 
-}
-
-// Type for route parameters expected by this screen
-type EditListingScreenRouteProp = RouteProp<RootStackParamList, 'EditListing'>;
-
-// Define the expected type for Dropdown options
-type DropdownOption = { label: string; value: string; };
-
-// --- Constants and Options --- 
-
-const originOptions: DropdownOption[] = [
+// --- AI: Define constants locally like in PostScreen ---
+const originOptions = [
   { label: 'Local Farm', value: 'local_farm' },
-  { label: 'Community Garden', value: 'community_garden' },
-  { label: 'Home Garden', value: 'home_garden' },
   { label: 'Imported', value: 'imported' },
-  { label: 'Other', value: 'other' },
+  { label: 'Homegrown', value: 'homegrown' },
+  { label: 'Grocery Store', value: 'grocery_store' }, 
+  { label: 'Garden', value: 'garden' },            
+  { label: 'Co-op', value: 'coop' },              
 ];
 
-const certificationOptions: DropdownOption[] = [
+const certificationOptions = [
   { label: 'Organic', value: 'Organic' },
   { label: 'Non-GMO', value: 'Non-GMO' },
   { label: 'Fair Trade', value: 'Fair Trade' },
@@ -85,955 +36,784 @@ const certificationOptions: DropdownOption[] = [
   { label: 'Vegan', value: 'Vegan' },
   { label: 'Kosher', value: 'Kosher' },
   { label: 'Halal', value: 'Halal' },
+  { label: 'Allergen-Free', value: 'Allergen-Free' },
 ];
 
-const contactMethodOptions: DropdownOption[] = [
-  { label: 'Prefer Email', value: 'Email' },
-  { label: 'Prefer Phone', value: 'Phone' },
-  { label: 'Prefer Direct Message', value: 'Direct Message' },
-];
+// --- Types ---
+type EditListingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditListing'>;
+type EditListingScreenRouteProp = RouteProp<RootStackParamList, 'EditListing'>;
 
-// --- Validation Schema --- 
+interface FormValues {
+  title: string;
+  producer: string;
+  description: string;
+  price: number; // AI: Changed type to number
+  origin: string;
+  certifications: string[];
+  expiryDate: string | null; 
+  unitType: 'unit' | 'size' | ''; 
+  quantity: string; 
+  sizeMeasurement: string;
+  imageUri: string | null; 
+  contactMethod: string; 
+  shareLocation: boolean;
+  location: { latitude: number; longitude: number } | null;
+}
 
+// --- AI: Copied validation schema from PostScreen ---
 const validationSchema = Yup.object().shape({
-  title: Yup.string().required('Title is required.'),
-  producer: Yup.string().required('Producer is required.'),
-  // Price validation: Required, must match currency format ($##.##)
-  price: Yup.string()
-    .required('Price is required')
-    .matches(/^\$?(\d+(\.\d{2})?)$/, 'Price must be in $0.00 format (e.g., $10.50 or 5.00)')
-    .test('is-valid-number', 'Price must be a valid number', value => {
-      // Remove optional '$' before checking if it's a number
-      const numericValue = value?.startsWith('$') ? value.substring(1) : value;
-      return !isNaN(parseFloat(numericValue)) && isFinite(parseFloat(numericValue));
-    }),
-  description: Yup.string().required('Description is required.'),
-  origin: Yup.string().required('Origin is required.'),
-  certifications: Yup.array().of(Yup.string()).ensure(),
-  unitType: Yup.string().oneOf(['unit', 'size'], 'Please select a unit type.').required('Unit type selection is required.'),
-  quantity: Yup.string()
-    .when('unitType', {
-      is: 'unit',
-      then: (schema) => schema
-        .required('Quantity is required when pricing per unit.')
-        .matches(/^[0-9]+$/, 'Quantity must be a whole number')
-        .test('positive', 'Quantity must be positive', (value) => parseInt(value || '0', 10) > 0),
-      otherwise: (schema) => schema.nullable().strip(),
-    }),
-  sizeMeasurement: Yup.string()
-    .when('unitType', {
-      is: 'size',
-      then: (schema) => schema.required('Size/weight description is required when pricing by size.')
-                            .trim()
-                            .min(1, 'Size/weight description cannot be empty.'),
-      otherwise: (schema) => schema.nullable().strip(),
-    }),
-  expiryDate: Yup.date().nullable().required('Expiry date is required.').min(new Date(), 'Expiry date cannot be in the past.'),
-  contactMethod: Yup.string().required('Please select a preferred contact method'),
+  title: Yup.string().required('Title is required').max(100, 'Title must be 100 characters or less'),
+  producer: Yup.string().required('Producer/Brand is required').max(100, 'Producer must be 100 characters or less'),
+  description: Yup.string().required('Description is required').max(500, 'Description must be 500 characters or less'),
+  price: Yup.number()
+    .typeError('Price must be a number') // Ensure the input is a number
+    .required('Price is required')      
+    .min(0, 'Price cannot be negative') // Allow 0, but not negative numbers
+    .test(
+      'maxDigits',
+      'Price must have at most two decimal places',
+      (value) => {
+        if (value === undefined || value === null) return true; // Allow empty or null values initially
+        // Convert number to string to check decimal places
+        const valueStr = String(value);
+        const decimalPart = valueStr.split('.')[1];
+        return !decimalPart || decimalPart.length <= 2;
+      }
+    ),
+  origin: Yup.string().required('Origin is required'),
+  certifications: Yup.array().of(Yup.string()),
+  expiryDate: Yup.date().nullable().min(new Date(), "Expiry date cannot be in the past"),
+  unitType: Yup.string().required('You must select a pricing unit type').oneOf(['unit', 'size']),
+  quantity: Yup.string().when('unitType', {
+    is: 'unit',
+    then: (schema) => schema
+      .required('Quantity is required when pricing per unit')
+      .matches(/^[1-9]\d*$/, 'Quantity must be a whole number greater than 0'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  sizeMeasurement: Yup.string().when('unitType', {
+    is: 'size',
+    then: (schema) => schema.required('Size/Measurement description is required when pricing by size/weight').max(50, 'Must be 50 characters or less'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  imageUri: Yup.string().required('An image is required'),
+  contactMethod: Yup.string().required('Contact method is required').oneOf(['Direct Message', 'Phone Call', 'Text', 'Email']),
   shareLocation: Yup.boolean(),
-  location: Yup.object()
-    .shape({
-      latitude: Yup.number().required(),
-      longitude: Yup.number().required(),
-    })
-    .nullable(),
+  location: Yup.object().nullable().when('shareLocation', {
+      is: true,
+      then: (schema) => schema.required('Location data is required when sharing location').shape({
+          latitude: Yup.number().required(),
+          longitude: Yup.number().required(),
+      }),
+      otherwise: (schema) => schema.notRequired(),
+  }),
 });
 
-// Default initial values (mostly empty for the edit screen, will be overwritten by fetched data)
-const defaultInitialValues: FormValues = {
-  title: '',
-  producer: '',
-  price: '', // Changed from number to string
-  unitType: '',
-  quantity: '',
-  sizeMeasurement: '',
-  description: '',
-  origin: '',
-  certifications: [],
-  contactMethod: '',
-  expiryDate: new Date(), // Default to today, will be overwritten
-  shareLocation: false,
-  location: null,
-  imageUri: null,
-  newImageSelected: false,
-};
-
-// --- Styles --- 
-const createStyles = (theme: MD3Theme) => StyleSheet.create({ // Use MD3Theme type
-  loadingContainer: {
+// --- AI: Copied createStyles from PostScreen --- 
+const createStyles = (theme: MD3Theme) => StyleSheet.create({
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: theme.colors.background,
   },
-  scrollContainer: {
-    padding: 20,
-    paddingBottom: 100, // Extra padding at bottom
-    backgroundColor: theme.colors.background,
-  },
-  title: {
-    ...theme.fonts.headlineSmall, // Use headlineSmall font specs
-    marginBottom: 20,
-    textAlign: 'center',
-    color: theme.colors.primary, // Use primary color
-  },
-  formErrorText: {
-    marginBottom: 15,
-    textAlign: 'center',
-    fontSize: 16,
+  scrollView: {
+    padding: 16,
+    paddingBottom: 60, 
   },
   formContainer: {
-    // Styles for the main form area
+    // Use this if Formik is wrapped inside ScrollView
   },
   input: {
-    marginBottom: 15,
-    backgroundColor: theme.colors.surface, // Ensure contrast
+    marginBottom: 8,
+    backgroundColor: theme.colors.background,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // Align items to the top for inputs
-    marginBottom: 15, // Add margin below the row
+  inputContainer: {
+    marginBottom: 16,
+    backgroundColor: theme.colors.background,
   },
-  priceInput: {
-    flex: 1,
-    marginRight: 10,
+  dropdownContainer: {
+    marginBottom: 16, 
   },
-  unitDropdown: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
+  dropdown: {
+    // Style for the dropdown menu itself if needed
   },
-  dropdownMenu: {
-    backgroundColor: theme.colors.surface,
-  },
-  imagePreviewContainer: {
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  imagePreview: {
-    width: Dimensions.get('window').width * 0.8,
-    height: Dimensions.get('window').width * 0.6, // Aspect ratio 4:3
+  radioGroupContainer: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.outline, 
     borderRadius: theme.roundness,
-    marginBottom: 10,
-    backgroundColor: theme.colors.surfaceVariant, // Placeholder bg
+    padding: 12,
   },
-  locationContainer: {
+  radioGroupLabel: {
+    marginBottom: 8,
+    fontSize: 16,
+    color: theme.colors.onSurfaceVariant, 
+  },
+  radioButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4, 
+  },
+  expiryDateButton: {
+    marginBottom: 4, 
+  },
+  datePickerInlineContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+    padding: 10,
     borderWidth: 1,
     borderColor: theme.colors.outline,
     borderRadius: theme.roundness,
-    padding: 15,
-    marginBottom: 15,
-    backgroundColor: theme.colors.surfaceVariant, // Slightly different bg
   },
-  locationSwitchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+  datePickerSpinner: {
+    // Style the spinner if needed, e.g., width
+    width: '100%', 
   },
-  locationText: {
+  datePickerDoneButton: {
+    marginTop: 15,
+    alignSelf: 'center', 
+  },
+  selectImageButton: {
+    marginBottom: 4, 
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
+    marginBottom: 16,
+    resizeMode: 'cover', 
+    borderRadius: 10, 
+  },
+  customCheckboxGroupContainer: {
+    marginBottom: 16,
+    padding: 12,
+  },
+  customCheckboxGroupLabel: {
+    marginBottom: 8,
     fontSize: 16,
-    marginBottom: 5,
     color: theme.colors.onSurfaceVariant,
   },
-  locationCoords: {
-    fontSize: 14,
-    color: theme.colors.onSurfaceVariant,
-    fontStyle: 'italic',
-    marginBottom: 10,
-  },
-  certificationSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: theme.colors.onBackground,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap', // Allow checkboxes to wrap
-    marginBottom: 10,
-  },
-  checkboxItem: {
+  switchRowContainer: {
+    marginHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
-    marginBottom: 10,
-    width: '45%', // Roughly two columns
+    justifyContent: 'space-between',
+    paddingVertical: 10, 
   },
-  radioGroupContainer: {
-    marginBottom: 15,
-  },
-  radioRow: {
+  switchLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+  },
+  switchLabel: {
+    fontSize: 16,
+    marginRight: 8, 
+    color: theme.colors.onSurface, 
+  },
+  activityIndicator: {
+    marginLeft: 8, 
   },
   submitButton: {
     marginTop: 20,
-    paddingVertical: 8,
+    paddingVertical: 8, 
   },
-  menuStyle: {
-    marginTop: 50, // Adjust as needed to position below anchor
+  errorText: {
+    color: theme.colors.error,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  formErrorText: {
+    marginTop: 10,
+    marginBottom: 5,
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  priceContextHelper: {
+    marginTop: -4, 
+    marginBottom: 8,
+    fontSize: theme.fonts.bodySmall.fontSize,
+    color: theme.colors.onSurfaceVariant,
   },
 });
 
-// --- Component --- 
-
+// --- Component ---
 const EditListingScreen: React.FC = () => {
-  const theme = useTheme(); // Use theme hook without explicit type
-  const styles = createStyles(theme);
-  const { state } = useAppContext(); // Use AppContext hook
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<EditListingScreenNavigationProp>();
   const route = useRoute<EditListingScreenRouteProp>();
-  const listingId = route.params?.listingId;
-
-  // --- State Variables --- 
-  const [initialFormValues, setInitialFormValues] = useState<FormValues | null>(null);
-  const [loading, setLoading] = useState<boolean>(true); // Start loading immediately
-  const [formError, setFormError] = useState<string | null>(null);
-  const [image, setImage] = useState<string | null>(null); // Stores the URI of the image to display/upload
-  const [newImageSelected, setNewImageSelected] = useState<boolean>(false); // Track if user picked a NEW image
-  const [selectedCertifications, setSelectedCertifications] = useState<Set<string>>(new Set());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [date, setDate] = useState<Date>(new Date()); // Date picker state
-  const [location, setLocation] = useState<FormValues['location']>(null); // Location state
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-  const [locationPermissionStatus, setLocationPermissionStatus] = useState<Location.PermissionStatus | null>(null);
-
+  const { listingId } = route.params;
+  const { state } = useAppContext();
+  const { user } = state.auth;
+  const theme = useTheme<MD3Theme>();
+  const styles = createStyles(theme);
   const formikRef = useRef<FormikProps<FormValues>>(null);
 
-  // --- Local State for Origin Menu --- 
-  const [originMenuVisible, setOriginMenuVisible] = useState(false);
-  const openOriginMenu = () => setOriginMenuVisible(true);
-  const closeOriginMenu = () => setOriginMenuVisible(false);
+  // --- AI: State variables aligned with PostScreen ---
+  const [initialFormValues, setInitialFormValues] = useState<FormValues | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [submitCount, setSubmitCount] = useState(0);
+  const [locationPermissionStatus, setLocationPermissionStatus] = useState<Location.PermissionStatus | null>(null);
 
-  // --- Permissions --- 
+  // --- Fetch Listing Data ---
   useEffect(() => {
-    (async () => {
-      // Request Camera and Media Library permissions
-      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-      const mediaLibraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (cameraStatus.status !== 'granted' || mediaLibraryStatus.status !== 'granted') {
-        // Alert.alert('Permissions Required', 'Camera and media library permissions are needed to select images.');
-        console.warn('[EditListingScreen] Camera or Media Library permissions not granted.');
-      }
-      // Request Location permissions
-      const locationStatus = await Location.requestForegroundPermissionsAsync();
-      setLocationPermissionStatus(locationStatus.status);
-      if (locationStatus.status !== 'granted') {
-        // Alert.alert('Permissions Required', 'Location permission is needed to share your current location.');
-         console.warn('[EditListingScreen] Location permission not granted.');
-      }
-    })();
-  }, []);
+    const fetchListing = async () => {
+      setIsLoading(true);
+      setFormError(null); // Clear previous errors
+      try {
+        // AI: Correct the API endpoint URL
+        const apiUrl = `/api/listings/${listingId}`; 
+        console.log(`[EditListingScreen] Fetching listing data from: ${apiUrl}`); 
+        const response = await axiosInstance.get(apiUrl); 
+        const listingData = response.data;
 
-  // --- Fetch Listing Data --- 
-  const fetchListingData = useCallback(async () => {
-    if (!listingId) {
-      setFormError('No listing ID provided.');
-      setLoading(false);
-      return;
-    }
-    console.log(`[EditListingScreen] Fetching data for listing ID: ${listingId}`);
-    setLoading(true);
-    setFormError(null);
-    try {
-      const response = await axiosInstance.get(`/api/user/listings/${listingId}`);
-      const listingData = response.data;
+        // AI: Log the received data
+        console.log('[EditListingScreen] Received listing data:', listingData);
 
-      // --- Transform fetched data --- 
-      // Correctly transform location data from backend { coordinates: [lon, lat] } to frontend { latitude, longitude }
-      let locationForState: FormValues['location'] = null;
-      if (
-        listingData.location && 
-        listingData.location.coordinates && 
-        Array.isArray(listingData.location.coordinates) &&
-        listingData.location.coordinates.length === 2 &&
-        typeof listingData.location.coordinates[0] === 'number' &&
-        typeof listingData.location.coordinates[1] === 'number'
-      ) {
-        // Backend sends [longitude, latitude]
-        locationForState = {
-          longitude: listingData.location.coordinates[0],
-          latitude: listingData.location.coordinates[1],
+        const transformedData: FormValues = {
+          title: listingData.title || '',
+          producer: listingData.producer || '',
+          description: listingData.description || '',
+          price: listingData.price != null ? Number(listingData.price) : 0, // Convert price to number
+          origin: listingData.origin || '',
+          certifications: listingData.certifications || [],
+          expiryDate: listingData.expiryDate ? new Date(listingData.expiryDate).toISOString() : null,
+          unitType: listingData.unitType || '',
+          quantity: listingData.quantity != null ? String(listingData.quantity) : '',
+          sizeMeasurement: listingData.sizeMeasurement || '',
+          imageUri: listingData.imageUri ? listingData.imageUri : null,
+          contactMethod: listingData.contactMethod || '',
+          shareLocation: !!listingData.location,
+          location: listingData.location ? { latitude: listingData.location.coordinates[1], longitude: listingData.location.coordinates[0] } : null,
         };
-        console.log('[EditListingScreen] Transformed location:', locationForState);
-      } else {
-        console.warn('[EditListingScreen] Received invalid or missing location data from backend:', listingData.location);
+
+        setInitialFormValues(transformedData);
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Error fetching listing:', error);
+        const message = error.response?.data?.message || error.message || 'Failed to load listing data.';
+        setFormError(message);
+        Alert.alert('Error Loading Data', message);
+        setIsLoading(false);
       }
-
-      const transformedData: FormValues = {
-        title: listingData.title || '',
-        producer: listingData.producer || '',
-        // Ensure price is initialized as a string, handle potential null/undefined
-        price: listingData.price != null ? String(listingData.price) : '', 
-        unitType: listingData.unitType || '',
-        // Ensure quantity is initialized as a string
-        quantity: listingData.quantity != null ? String(listingData.quantity) : '',
-        sizeMeasurement: listingData.sizeMeasurement || '',
-        description: listingData.description || '',
-        origin: listingData.origin || '',
-        certifications: listingData.certifications || [],
-        contactMethod: listingData.contactMethod || '',
-        expiryDate: listingData.expiryDate ? new Date(listingData.expiryDate) : new Date(),
-        shareLocation: !!listingData.location, // If location exists, assume it was shared
-        location: locationForState, // Use the transformed location object for Formik initial values
-        imageUri: listingData.imageUri ? `${API_BASE_URL}${listingData.imageUri.startsWith('/') ? listingData.imageUri : '/' + listingData.imageUri}` : null, // Ensure leading slash for base url concat
-        newImageSelected: false, // Start assuming no new image selected
-      };
-      console.log('[EditListingScreen] Fetched and transformed data:', transformedData);
-
-      // --- Update State --- 
-      setInitialFormValues(transformedData); // Set initial values for Formik
-      setImage(transformedData.imageUri); // Set image for display
-      setDate(transformedData.expiryDate || new Date()); // Set date picker state
-      setSelectedCertifications(new Set(transformedData.certifications)); // Set certifications state
-      setLocation(locationForState); // Set local location state using the correctly transformed object
-      
-      // IMPORTANT: Reset Formik with the fetched values AFTER setting initialFormValues state
-      // Use a timeout to ensure state update has propagated before reset
-      setTimeout(() => {
-         if (formikRef.current) {
-             formikRef.current.resetForm({ values: transformedData });
-             console.log('[EditListingScreen] Formik form reset with fetched values.');
-         }
-      }, 0);
-
-    } catch (err: any) {
-      console.error('[EditListingScreen] Error fetching listing for edit:', err);
-      const message = err.response?.data?.message || err.message || 'Failed to load listing data.';
-      setFormError(message);
-      Alert.alert('Error Loading Data', message);
-    } finally {
-      setLoading(false);
-    }
+    };
+    fetchListing();
   }, [listingId]);
 
-  // Fetch data when the screen focuses or listingId changes
-  useEffect(() => {
-    fetchListingData();
-  }, [fetchListingData]); // fetchListingData depends on listingId
-
-  // --- Image Picker Logic ---
-
-  // Function to handle taking a photo with the camera
-  const handleTakePhoto = async (setFieldValue: Function) => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setFieldValue('imageUri', asset.uri);
-      setFieldValue('imageType', asset.mimeType || 'image/jpeg');
-      setFieldValue('imageName', asset.fileName || `photo_${Date.now()}.jpg`);
-      setFieldValue('newImageSelected', true); // Mark that a new image was chosen
-    } else if (result.canceled) {
-      console.log('Camera cancelled');
-    }
-  };
-
-  // Function to handle choosing an image from the library
-  const handleChooseFromLibrary = async (setFieldValue: Function) => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Media library permission is needed to choose photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setFieldValue('imageUri', asset.uri);
-      setFieldValue('imageType', asset.mimeType || 'image/jpeg');
-      setFieldValue('imageName', asset.fileName || `library_${Date.now()}.jpg`);
-      setFieldValue('newImageSelected', true); // Mark that a new image was chosen
-    } else if (result.canceled) {
-      console.log('Library selection cancelled');
-    }
-  };
-
-  // Function to show image selection options
-  const showImagePickerOptions = (setFieldValue: Function) => {
+  // AI: Show options for picking image or taking photo
+  const showImagePickerOptions = (setFieldValue: FormikProps<FormValues>['setFieldValue']) => {
     Alert.alert(
-      'Select Image Source',
-      'Choose where to get the image from:',
+      "Select Image Source",
+      "Choose an option",
       [
-        { text: 'Take Photo', onPress: () => handleTakePhoto(setFieldValue) },
-        { text: 'Choose from Library', onPress: () => handleChooseFromLibrary(setFieldValue) },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-      { cancelable: true }
+        { text: "Camera Roll", onPress: () => pickImage(setFieldValue) },
+        { text: "Take Photo", onPress: () => takePhoto(setFieldValue) },
+        { text: "Cancel", style: "cancel" }
+      ]
     );
   };
 
-  // --- Form Handlers --- 
-
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    const currentDate = selectedDate || date;
-    // Keep date picker open on iOS until user dismisses it
-    setShowDatePicker(Platform.OS === 'ios'); 
-    setDate(currentDate);
-    formikRef.current?.setFieldValue('expiryDate', currentDate);
-    // Hide picker on Android after selection or dismissal
+  // --- Date Picker Logic (Copied from PostScreen) ---
+  const handleDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate: Date | undefined,
+  ) => {
+    const currentDate = selectedDate || (formikRef.current?.values.expiryDate ? new Date(formikRef.current.values.expiryDate) : new Date());
     if (Platform.OS === 'android') {
-        setShowDatePicker(false);
+      setIsDatePickerVisible(false);
+    }
+    if (event.type === 'set' && currentDate) {
+      formikRef.current?.setFieldValue('expiryDate', currentDate.toISOString());
     }
   };
 
-  // Function to explicitly hide date picker (e.g., for iOS 'Done' button)
-  const hideDatePicker = () => {
-      setShowDatePicker(false);
-  }
-
-  const handleGetCurrentLocation = async () => {
-    if (locationPermissionStatus !== 'granted') {
-      Alert.alert('Location Permission Needed', 'Please grant location permission in your device settings to use this feature.');
-      return;
-    }
-    setIsFetchingLocation(true);
+  // --- AI: Image Picker Logic (Copied from PostScreen) ---
+  const pickImage = async (setFieldValue: FormikProps<FormValues>['setFieldValue']) => {
     try {
-      // Get current location
-      const locationResult = await Location.getCurrentPositionAsync({});
-      const newLocation = {
-        latitude: locationResult.coords.latitude,
-        longitude: locationResult.coords.longitude,
-      };
-      setLocation(newLocation); // Update local state
-      // Update Formik state
-      formikRef.current?.setFieldValue('location', newLocation);
-      formikRef.current?.setFieldValue('shareLocation', true); // Assume user wants to share if they fetch
-      console.log('[EditListingScreen] Fetched location:', newLocation);
-    } catch (error) {
-      console.error('[EditListingScreen] Error fetching location:', error);
-      Alert.alert('Error', 'Could not fetch current location. Please ensure GPS is enabled.');
-    } finally {
-      setIsFetchingLocation(false);
-    }
-  };
-
-  // --- Form Submission (PUT Request) --- 
-  const onSubmit = async (values: FormValues, { setSubmitting }: FormikHelpers<FormValues>) => {
-    console.log('[EditListingScreen] onSubmit triggered. Values:', values);
-    setFormError('');
-    setSubmitting(true);
-
-    // --- Token Check --- 
-    if (!state.auth.token) { // Access token from AppContext state
-      Alert.alert('Error', 'Authentication token not found. Please log in again.');
-      setSubmitting(false);
-      return;
-    }
-    if (!listingId) {
-       Alert.alert('Error', 'Listing ID is missing. Cannot update.');
-       setSubmitting(false);
-       return;
-    }
-
-    // --- Contact Info Logic (Same as PostScreen) --- 
-    const userEmail = state.auth.user?.email;
-    const userPhone = state.auth.user?.phone;
-    let contactInfoToSend = '';
-    switch (values.contactMethod) {
-      case 'Email':
-        if (!userEmail) {
-          setFormError('Your email is not set in your profile.');
-          setSubmitting(false);
-          return;
-        }
-        contactInfoToSend = userEmail;
-        break;
-      case 'Phone':
-        if (!userPhone) {
-          setFormError('Your phone number is not set in your profile.');
-          setSubmitting(false);
-          return;
-        }
-        contactInfoToSend = userPhone;
-        break;
-      case 'Direct Message':
-        contactInfoToSend = 'DM'; // Backend expects 'DM' string or similar
-        break;
-      default:
-        // This case should ideally not be hit due to validation, but handle defensively
-        setFormError('Invalid contact method selected.');
-        setSubmitting(false);
-        return;
-    }
-
-    // --- Prepare FormData --- 
-    const formData = new FormData();
-    // Create a mutable copy of values for manipulation
-    const listingDetails: any = { ...values }; // Use 'any' temporarily for easier property deletion
-
-    // Delete helper fields not needed by backend
-    delete listingDetails.imageName;
-    delete listingDetails.imageType;
-    delete listingDetails.newImageSelected; // Don't send this flag
-
-    // **Critical Image Handling:** Only delete imageUri if NO new image was selected.
-    // If a new image *was* selected, imageUri is needed by the backend logic (though file takes precedence)
-    // If no new image was selected, sending imageUri might cause issues if backend tries to re-validate it.
-    // Best practice: If no new image, don't send imageUri or the 'image' field.
-    if (!newImageSelected) { 
-      delete listingDetails.imageUri;
-    } else {
-        // If a new image IS selected, the backend should ignore this `imageUri` from `listingDetails`
-        // because the `image` file part will be present. We can optionally delete it here too.
-        delete listingDetails.imageUri; 
-    }
-
-    // Handle location based on shareLocation flag
-    if (!values.shareLocation) {
-      listingDetails.location = null; // Explicitly set to null if not sharing
-    } else {
-       // Ensure location object has the correct 'Point' structure if sharing
-      if (location && location.latitude && location.longitude) {
-          listingDetails.location = {
-              type: 'Point',
-              coordinates: [location.longitude, location.latitude] // Backend expects [lon, lat]
-          };
-      } else {
-          // If shareLocation is true but location state is somehow null, don't send it
-          listingDetails.location = null; 
-      }
-    }
-
-    // Add contact info and certifications
-    listingDetails.contactInfo = contactInfoToSend;
-    listingDetails.certifications = Array.from(selectedCertifications);
-
-    // Append details as JSON string
-    formData.append('listingDetails', JSON.stringify(listingDetails));
-    console.log('[EditListingScreen] FormData prepared. listingDetails appended as JSON string.');
-    console.log('[EditListingScreen] Stringified details:', JSON.stringify(listingDetails));
-
-    // Append *new* image file ONLY if one was selected by the user
-    if (newImageSelected && image) {
-      const uriParts = image.split('/');
-      const fileName = uriParts[uriParts.length - 1];
-      // Basic mime type detection from extension
-      let fileExtension = fileName.split('.').pop()?.toLowerCase();
-      let mimeType = 'image/jpeg'; // Default
-      if (fileExtension === 'png') mimeType = 'image/png';
-      else if (fileExtension === 'gif') mimeType = 'image/gif';
-      else if (fileExtension === 'webp') mimeType = 'image/webp';
-      // Add more types as needed
-      
-      console.log(`[EditListingScreen] Appending new image to FormData: ${fileName}, Type: ${mimeType}`);
-      formData.append('image', {
-        uri: image,
-        name: fileName,
-        type: mimeType,
-      } as any); // Type assertion needed for FormData append
-    } else {
-      console.log('[EditListingScreen] No new image selected, not appending image file.');
-    }
-
-    // --- API Call (PUT) --- 
-    const apiUrl = `${API_BASE_URL}/api/user/listings/${listingId}`;
-    const apiMethod = 'put';
-
-    console.log(`[EditListingScreen] Sending ${apiMethod.toUpperCase()} request to ${apiUrl}`);
-
-    try {
-      const response = await axiosInstance[apiMethod](apiUrl, formData, {
-        headers: {
-          // Axios might set multipart/form-data automatically, but being explicit is safer
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${state.auth.token}`,
-        }
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8, 
       });
 
-      console.log('[EditListingScreen] Update successful:', response.data);
-      Alert.alert('Success', 'Listing updated successfully!');
-      
-      // --- Post-Success Navigation --- 
-      // Decide where to go: Back to MyListings is usually appropriate
-      // Or potentially to a detail screen for the updated listing if one exists
-      navigation.navigate('BottomTab', { screen: 'My Listings' }); // Navigate back to the list
-
-    } catch (err: any) {
-      console.error('[EditListingScreen] Error updating listing:', err);
-      let message = 'Failed to update listing.';
-      if (axios.isAxiosError(err)) {
-         console.error('Axios error details:', { 
-            status: err.response?.status, 
-            data: err.response?.data, 
-            headers: err.response?.headers 
-         });
-         message = err.response?.data?.message || err.response?.data?.error || err.message;
-      } else {
-         console.error('Non-Axios error:', err.message);
-         message = err.message;
+      if (!result.canceled) {
+        setFieldValue('imageUri', result.assets[0].uri);
       }
-      setFormError(message);
-      Alert.alert('Update Failed', message);
+    } catch (error) {
+      console.error("ImagePicker Error: ", error);
+      Alert.alert('Error', 'Could not open camera roll.');
+    }
+  };
+
+  const takePhoto = async (setFieldValue: FormikProps<FormValues>['setFieldValue']) => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "Camera access is needed to take photos.");
+        return;
+      }
+
+      let result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setFieldValue('imageUri', result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Camera Error: ", error);
+      Alert.alert('Error', 'Could not open camera.');
+    }
+  };
+
+  // --- AI: Location Handling Logic (Copied from PostScreen) ---
+  const handleLocationToggle = async (
+    newValue: boolean,
+    setFieldValue: FormikProps<FormValues>['setFieldValue']
+  ) => {
+    setFieldValue('shareLocation', newValue);
+    if (newValue) {
+      setIsFetchingLocation(true);
+      try {
+        let currentStatus = locationPermissionStatus;
+        if (!currentStatus) {
+           const { status } = await Location.getForegroundPermissionsAsync();
+           setLocationPermissionStatus(status);
+           currentStatus = status;
+        }
+
+        if (currentStatus !== Location.PermissionStatus.GRANTED) {
+            console.log('Requesting location permission...');
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setLocationPermissionStatus(status);
+            currentStatus = status;
+        }
+
+        if (currentStatus === Location.PermissionStatus.GRANTED) {
+          console.log('Location permission granted. Fetching location...');
+          let locationResult = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced, 
+          });
+          console.log('Location fetched:', locationResult);
+          const locationData = {
+            latitude: locationResult.coords.latitude,
+            longitude: locationResult.coords.longitude,
+          };
+          setFieldValue('location', locationData);
+        } else {
+          console.log('Location permission denied.');
+          Alert.alert('Permission Denied', 'Cannot get location without permission.');
+          setFieldValue('shareLocation', false); 
+        }
+      } catch (error) {
+        console.error("Error fetching location: ", error);
+        Alert.alert('Location Error', 'Could not fetch current location. Ensure location services are enabled.');
+        setFieldValue('shareLocation', false); 
+      } finally {
+        setIsFetchingLocation(false);
+      }
+    } else {
+      setFieldValue('location', null);
+      console.log('Location sharing disabled.');
+    }
+  };
+
+  // --- Form Submission ---
+  const onSubmit = async (values: FormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
+    setFormError(null); 
+    if (!user) {
+      setFormError('Authentication error. Please log in again.');
+      setSubmitting(false);
+      return;
+    }
+
+    const formData = new FormData();
+    let imageChanged = false;
+
+    Object.keys(values).forEach(key => {
+      if (key === 'imageUri') return;
+
+      const formKey = key as keyof FormValues;
+      let valueToAppend = values[formKey];
+
+      if (formKey === 'location' && valueToAppend) {
+          valueToAppend = JSON.stringify(valueToAppend);
+      }
+
+      if (formKey === 'certifications' && Array.isArray(valueToAppend)) {
+          if (valueToAppend.length > 0) {
+              valueToAppend.forEach(cert => formData.append('certifications[]', cert));
+          }
+      } else if (valueToAppend !== null && valueToAppend !== undefined) {
+          formData.append(formKey, valueToAppend as any); 
+      }
+    });
+
+    if (values.imageUri && values.imageUri !== initialFormValues?.imageUri) {
+      imageChanged = true;
+      const uriParts = values.imageUri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      const fileName = `photo.${fileType}`;
+
+      formData.append('image', {
+        uri: values.imageUri,
+        name: fileName,
+        type: `image/${fileType}`,
+      } as any); 
+    }
+
+    console.log("Submitting FormData:", formData); 
+ 
+    try {
+      // AI: Corrected API endpoint URL
+      const response = await axiosInstance.put(`/api/listings/${listingId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.status === 200) {
+        console.log('Listing updated successfully:', response.data);
+        Alert.alert('Success', 'Listing updated successfully!');
+        navigation.goBack(); 
+      } else {
+        throw new Error('Unexpected response status');
+      }
+    } catch (error: any) {
+      console.error('Error updating listing:', error);
+      let errorMessage = 'An unknown error occurred while updating the listing.';
+      if (axios.isAxiosError(error)) { 
+        console.error('Error response data:', error.response?.data);
+        console.error('Error response status:', error.response?.status);
+        errorMessage = error.response?.data?.message || `Server error: ${error.response?.status}`;
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+        errorMessage = 'No response from server. Check your network connection.';
+      } else {
+        console.error('Error message:', error.message);
+        errorMessage = error.message;
+      }
+      setFormError(errorMessage);
+      Alert.alert('Update Failed', errorMessage); 
     } finally {
       setSubmitting(false);
     }
   };
 
-  // --- Render Logic --- 
-
-  // Show loading indicator while fetching initial data
-  if (loading || !initialFormValues) { // Check !initialFormValues as well
+  // --- Render Loading/Error State ---
+  if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.container}>
         <ActivityIndicator animating={true} size="large" color={theme.colors.primary} />
         <Text style={{ marginTop: 10, color: theme.colors.onBackground }}>Loading Listing Data...</Text>
       </View>
     );
   }
 
-  // --- Main JSX Render --- 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Edit Your Listing</Text>
-      
-      {/* Display overall form error */}
-      {formError && (
-        <HelperText type="error" visible={!!formError} style={styles.formErrorText}>
-          {formError}
-        </HelperText>
-      )}
+  if (!initialFormValues) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: theme.colors.error, textAlign: 'center' }}>Failed to load listing data.</Text>
+      </View>
+    );
+  }
 
-      <Formik
-        initialValues={initialFormValues} // Use fetched data loaded into state
-        validationSchema={validationSchema}
-        onSubmit={onSubmit}
-        innerRef={formikRef}
-        enableReinitialize={true} // IMPORTANT: Allow Formik to reinitialize when initialFormValues state changes after fetch
-      >
-        {({ 
-          handleChange, 
-          handleBlur, 
-          handleSubmit, 
-          setFieldValue, 
-          values, 
-          errors, 
-          touched, 
-          isSubmitting 
-        }) => {
-          return (
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
+        <Formik
+          initialValues={initialFormValues}
+          validationSchema={validationSchema}
+          onSubmit={onSubmit}
+          enableReinitialize
+          innerRef={formikRef}
+        >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue, isSubmitting, setFieldTouched }) => (
             <View style={styles.formContainer}>
-              {/* --- Title --- */}
               <TextInput
                 label="Title*"
-                mode="outlined"
                 value={values.title}
                 onChangeText={handleChange('title')}
-                onBlur={handleBlur('title')}
+                onBlur={() => setFieldTouched('title')}
                 error={touched.title && !!errors.title}
+                mode="outlined"
                 style={styles.input}
-                theme={{ colors: { primary: theme.colors.primary } }}
+                theme={theme}
               />
               <HelperText type="error" visible={touched.title && !!errors.title}>
                 {errors.title}
               </HelperText>
 
-              {/* --- Producer --- */}
-               <TextInput
-                label="Producer*"
-                mode="outlined"
+              <TextInput
+                label="Producer/Brand*"
                 value={values.producer}
                 onChangeText={handleChange('producer')}
-                onBlur={handleBlur('producer')}
+                onBlur={() => setFieldTouched('producer')}
                 error={touched.producer && !!errors.producer}
+                mode="outlined"
                 style={styles.input}
+                theme={theme}
               />
               <HelperText type="error" visible={touched.producer && !!errors.producer}>
                 {errors.producer}
               </HelperText>
 
-              {/* --- Price & Unit Type Row --- */}
-              <View style={styles.row}>
-                <TextInput
-                  label="Price ($)*"
-                  mode="outlined"
-                  value={values.price} // Value is now correctly typed as string
-                  onChangeText={handleChange('price')}
-                  onBlur={handleBlur('price')}
-                  keyboardType="decimal-pad" // Set keyboard type
-                  error={touched.price && !!errors.price}
-                  style={styles.input}
-                  left={<TextInput.Affix text="$ " />} // Add fixed dollar sign prefix
-                />
-                <View style={styles.radioGroupContainer}>
-                  <Text style={styles.certificationSectionTitle}>Unit Type*</Text>
-                  <RadioButton.Group 
-                    onValueChange={newValue => setFieldValue('unitType', newValue)} 
-                    value={values.unitType}
-                  >
-                    <View style={styles.radioRow}>
-                      <RadioButton value="unit" color={theme.colors.primary} />
-                      <Text onPress={() => setFieldValue('unitType', 'unit')}>Unit</Text>
-                    </View>
-                    <View style={styles.radioRow}>
-                      <RadioButton value="size" color={theme.colors.primary} />
-                      <Text onPress={() => setFieldValue('unitType', 'size')}>Size/Weight</Text>
-                    </View>
-                  </RadioButton.Group>
-                  <HelperText type="error" visible={touched.unitType && !!errors.unitType}>
-                    {errors.unitType}
-                  </HelperText>
-                </View>
-              </View>
-               <HelperText type="error" visible={!!((touched.price && errors.price) || (touched.unitType && errors.unitType))}>
-                {errors.price || errors.unitType}
-              </HelperText>
-
-              {/* --- Quantity (Conditional based on Unit Type) --- */}
-              {values.unitType === 'unit' && (
-                <>
-                  <TextInput
-                    label="Quantity*"
-                    mode="outlined"
-                    value={values.quantity}
-                    onChangeText={handleChange('quantity')}
-                    onBlur={handleBlur('quantity')}
-                    error={touched.quantity && !!errors.quantity}
-                    style={styles.input}
-                    keyboardType="numeric"
-                  />
-                  <HelperText type="error" visible={touched.quantity && !!errors.quantity}>
-                    {errors.quantity}
-                  </HelperText>
-                </>
-              )}
-
-              {/* --- Size/Measurement (Conditional based on Unit Type) --- */}
-              {values.unitType === 'size' && (
-                <>
-                  <TextInput
-                    label="Size/Weight Description*"
-                    placeholder='e.g., 1 lb, 500g bunch, dozen' 
-                    mode="outlined"
-                    value={values.sizeMeasurement}
-                    onChangeText={handleChange('sizeMeasurement')}
-                    onBlur={handleBlur('sizeMeasurement')}
-                    error={touched.sizeMeasurement && !!errors.sizeMeasurement}
-                    style={styles.input}
-                  />
-                  <HelperText type="error" visible={touched.sizeMeasurement && !!errors.sizeMeasurement}>
-                    {errors.sizeMeasurement}
-                  </HelperText>
-                </>
-              )}
-
-              {/* --- Description --- */}
               <TextInput
                 label="Description*"
-                mode="outlined"
                 value={values.description}
                 onChangeText={handleChange('description')}
-                onBlur={handleBlur('description')}
+                onBlur={() => setFieldTouched('description')}
                 error={touched.description && !!errors.description}
+                mode="outlined"
                 style={styles.input}
+                theme={theme}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
               />
-               <HelperText type="error" visible={touched.description && !!errors.description}>
+              <HelperText type="error" visible={touched.description && !!errors.description}>
                 {errors.description}
               </HelperText>
 
-              {/* --- Origin Menu (using TextInput + Menu) --- */}
-              <View>
-                <Menu
-                  visible={originMenuVisible}
-                  onDismiss={closeOriginMenu}
-                  anchor={
-                    // Wrap TextInput in TouchableRipple to trigger menu
-                    <TouchableRipple onPress={openOriginMenu} style={styles.input}>
-                       {/* Display selected value, non-editable */}
-                      <TextInput
-                        label="Origin*"
-                        mode="outlined"
-                        value={values.origin} // Directly use Formik value
-                        editable={false} // Prevent manual typing
-                        error={touched.origin && !!errors.origin}
-                        // Add dropdown arrow icon
-                        right={<TextInput.Icon icon="menu-down" onPress={openOriginMenu} />}
-                        // Need pointerEvents none so TouchableRipple is pressed
-                        pointerEvents="none" 
-                        style={styles.input} // Inherit standard input style
-                      />
-                    </TouchableRipple>
-                  }
-                  style={styles.menuStyle} // Optional: Style the menu itself
-                >
-                  {/* Map options to Menu items */} 
-                  {originOptions.map((option) => (
-                    <Menu.Item
-                      key={option.value}
-                      onPress={() => {
-                        setFieldValue('origin', option.value); // Update Formik directly
-                        closeOriginMenu(); // Close menu on selection
-                      }}
-                      title={option.label}
-                    />
-                  ))}
-                </Menu>
-                {/* Display validation error from Formik */} 
-                 <HelperText type="error" visible={touched.origin && !!errors.origin}>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  label="Price*"
+                  value={String(values.price)} // Convert price to string for TextInput
+                  onChangeText={(text) => handleChange('price')(text.replace(/[^0-9.]/g, ''))} // Allow only numbers and decimal point
+                  onBlur={handleBlur('price')}
+                  error={submitCount > 0 && touched.price && !!errors.price}
+                  style={styles.input}
+                  theme={theme}
+                  keyboardType="numeric"
+                  left={<TextInput.Affix text="$" />}
+                  mode="outlined"
+                />
+                <HelperText type="error" visible={submitCount > 0 && touched.price && !!errors.price}>
+                  {errors.price}
+                </HelperText>
+              </View>
+
+              {/* Helper text for price context */}
+              <HelperText 
+                type="info" 
+                visible={!!values.unitType}
+                style={styles.priceContextHelper}
+              >
+                {values.unitType === 'unit' 
+                  ? 'Price is per individual unit.' 
+                  : values.unitType === 'size' && values.sizeMeasurement
+                    ? `Price is per ${values.sizeMeasurement}.`
+                    : values.unitType === 'size' 
+                      ? 'Price is per specified size/weight.'
+                      : ''}
+              </HelperText>
+
+              {/* Unit Type Selection using CustomCheckbox */}
+              <View style={styles.customCheckboxGroupContainer}>
+                <Text style={styles.customCheckboxGroupLabel}>Price Method*:</Text>
+                <CustomCheckbox
+                  label="Per Unit"
+                  status={values.unitType === 'unit'}
+                  onPress={() => {
+                    setFieldValue('unitType', 'unit');
+                    setFieldValue('sizeMeasurement', '');
+                  }}
+                />
+                <CustomCheckbox
+                  label="Per Size/Weight"
+                  status={values.unitType === 'size'}
+                  onPress={() => {
+                    setFieldValue('unitType', 'size');
+                    setFieldValue('quantity', '');
+                  }}
+                />
+                <HelperText type="error" visible={submitCount > 0 && Boolean(touched.unitType && errors.unitType)}>
+                  {errors.unitType}
+                </HelperText>
+              </View>
+
+              {/* Conditional Quantity Input */}
+              {values.unitType === 'unit' && (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    label="Quantity Available*"
+                    keyboardType="numeric"
+                    onChangeText={handleChange('quantity')}
+                    onBlur={handleBlur('quantity')}
+                    value={values.quantity?.toString() ?? ''}
+                    error={submitCount > 0 && Boolean(touched.quantity && errors.quantity)}
+                    style={styles.input} 
+                    theme={theme}
+                    mode="outlined"
+                    placeholder="e.g., 50"
+                  />
+                  <HelperText type="error" visible={submitCount > 0 && Boolean(touched.quantity && errors.quantity)}>
+                    {errors.quantity}
+                  </HelperText>
+                </View>
+              )}
+
+              {/* Conditional Size Measurement Input */}
+              {values.unitType === 'size' && (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    mode="outlined"
+                    label="Size/Weight Description*"
+                    value={values.sizeMeasurement}
+                    onChangeText={handleChange('sizeMeasurement')}
+                    onBlur={handleBlur('sizeMeasurement')}
+                    error={submitCount > 0 && touched.sizeMeasurement && !!errors.sizeMeasurement}
+                    style={styles.input} 
+                    theme={theme}
+                    placeholder="e.g., 1 lb bag, 16 oz jar"
+                  />
+                  <HelperText type="error" visible={submitCount > 0 && touched.sizeMeasurement && !!errors.sizeMeasurement}>
+                    {errors.sizeMeasurement}
+                  </HelperText>
+                </View>
+              )}
+
+              <View style={styles.dropdownContainer}>
+                <Dropdown
+                  label="Origin*"
+                  mode="outlined"
+                  value={values.origin}
+                  onSelect={(value: string | undefined) => { 
+                    setFieldValue('origin', value ?? ''); 
+                  }}
+                  options={originOptions} // AI: Use 'options' prop instead
+                />
+                <HelperText type="error" visible={touched.origin && !!errors.origin}>
                   {errors.origin}
                 </HelperText>
               </View>
 
-              {/* --- Image Picker --- */}
-              <View style={styles.imagePreviewContainer}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.imagePreview} />
-                ) : (
-                  <View style={[styles.imagePreview, { justifyContent: 'center', alignItems: 'center' }]}>
-                      <Text style={{color: theme.colors.onSurfaceVariant}}>No Image Selected</Text>
-                  </View>
-                )}
-                <Button 
-                  icon="camera" 
-                  mode="contained" 
-                  onPress={() => showImagePickerOptions(setFieldValue)} 
-                  style={{ marginTop: 10 }}
+              <View style={styles.inputContainer}>
+                <CustomMultiSelect
+                  label="Certifications"
+                  options={certificationOptions}
+                  selectedValues={values.certifications}
+                  onSelectionChange={(newValues: string[]) => setFieldValue('certifications', newValues)}
+                  placeholder="Select certifications (optional)"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setIsDatePickerVisible(true)}
+                  icon="calendar"
+                  style={styles.expiryDateButton}
                 >
-                  {image ? 'Change Image' : 'Select Image'}
+                  {values.expiryDate ? `Expires: ${new Date(values.expiryDate).toLocaleDateString()}` : 'Select Expiry Date (Optional)'}
                 </Button>
-                {/* Note: Validation for image might be complex here if allowing pre-existing images */} 
+                <HelperText type="error" visible={touched.expiryDate && !!errors.expiryDate}>
+                  {errors.expiryDate}
+                </HelperText>
               </View>
 
-              {/* --- Expiry Date Picker --- */}
-              <Button 
-                icon="calendar" 
-                mode="outlined" 
-                onPress={() => setShowDatePicker(true)} 
-                style={styles.input}
-              >
-                Expiry Date: {date.toLocaleDateString()}
-              </Button>
-              {/* Display error for expiryDate */} 
-              <HelperText type="error" visible={touched.expiryDate && !!errors.expiryDate}>
-                {errors.expiryDate}
-              </HelperText>
-               {showDatePicker && (
+              {isDatePickerVisible && (
+                <View style={styles.datePickerInlineContainer}>
                   <DateTimePicker
-                      testID="dateTimePicker"
-                      value={date} // Use state variable for picker value
-                      mode="date"
-                      is24Hour={true}
-                      display="default"
-                      onChange={handleDateChange}
-                      // Add minimumDate to prevent past dates
-                      minimumDate={new Date()} 
+                    value={values.expiryDate ? new Date(values.expiryDate) : new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleDateChange}
+                    minimumDate={new Date()}
+                    style={styles.datePickerSpinner}
                   />
-              )}
-              {/* iOS requires a manual dismiss button */}
-               {Platform.OS === 'ios' && showDatePicker && (
-                  <Button onPress={hideDatePicker} mode="text">Done</Button>
-              )}
-
-              {/* --- Certifications MultiSelect --- */}
-              <Text style={styles.certificationSectionTitle}>Certifications (Optional)</Text>
-              {/* Ensure CustomMultiSelect is imported and props are correct */}
-              <CustomMultiSelect
-                  label="Certifications" 
-                  options={certificationOptions.map(opt => ({ label: opt.label, value: opt.value }))} 
-                  selectedValues={Array.from(selectedCertifications)} 
-                  onSelectionChange={(newValues: string[]) => { 
-                      setSelectedCertifications(new Set(newValues));
-                      // Formik update (optional)
-                      // setFieldValue('certifications', newValues);
-                  }}
-                  placeholder="Select certifications" 
-              />
-
-              {/* --- Location --- */}
-              <View style={styles.locationContainer}>
-                <View style={styles.locationSwitchContainer}>
-                  <Text style={styles.locationText}>Share My Location</Text>
-                  {/* Corrected Switch onValueChange */}
-                  <Switch 
-                    value={values.shareLocation} 
-                    // Wrap setFieldValue in a plain function block
-                    onValueChange={(newValue: boolean) => { 
-                      setFieldValue('shareLocation', newValue); 
-                    }}
-                    color={theme.colors.primary}
-                  />
+                  <Button
+                    mode="contained"
+                    onPress={() => setIsDatePickerVisible(false)}
+                    style={styles.datePickerDoneButton}
+                  >
+                    Done
+                  </Button>
                 </View>
-                {values.shareLocation && (
-                  <View>
-                    {location ? (
-                      <Text style={styles.locationCoords}>
-                        Lat: {location.latitude.toFixed(4)}, Lon: {location.longitude.toFixed(4)}
-                      </Text>
-                    ) : (
-                      <Text style={styles.locationCoords}>Location not yet set.</Text>
-                    )}
-                    <Button 
-                      icon="map-marker" 
-                      mode="outlined" 
-                      onPress={handleGetCurrentLocation} 
-                      loading={isFetchingLocation}
-                      disabled={isFetchingLocation}
-                      style={{ marginBottom: 5 }}
-                    >
-                      {isFetchingLocation ? 'Fetching...' : (location ? 'Update Location' : 'Get Current Location')}
-                    </Button>
-                    {locationPermissionStatus !== 'granted' && (
-                      <HelperText type="info">
-                        Location permission needed to fetch automatically.
-                      </HelperText>
-                    )}
-                  </View>
-                )}
-              </View>
+              )}
 
-               {/* --- Contact Method Radio Buttons --- */}
-              <View style={styles.radioGroupContainer}>
-                <Text style={styles.certificationSectionTitle}>Preferred Contact*</Text>
-                <RadioButton.Group 
-                  onValueChange={newValue => setFieldValue('contactMethod', newValue)} 
-                  value={values.contactMethod}
-                >
-                  {contactMethodOptions.map(option => (
-                     <View key={option.value} style={styles.radioRow}>
-                       <RadioButton value={option.value} color={theme.colors.primary} />
-                       <Text onPress={() => setFieldValue('contactMethod', option.value)}>{option.label}</Text>
-                     </View>
-                  ))}
-                </RadioButton.Group>
+              <Button
+                mode="outlined"
+                onPress={() => showImagePickerOptions(setFieldValue)}
+                style={styles.selectImageButton}
+                icon="camera"
+              >
+                Select Image*
+              </Button>
+              {values.imageUri ? (
+                <Image source={{ uri: values.imageUri }} style={styles.imagePreview} />
+              ) : (
+                <HelperText type="info">No image selected.</HelperText>
+              )}
+              <HelperText type="error" visible={touched.imageUri && !!errors.imageUri}>
+                {errors.imageUri}
+              </HelperText>
+
+              <View style={styles.customCheckboxGroupContainer}>
+                <Text style={styles.customCheckboxGroupLabel}>The buyer should contact me via:*</Text>
+                <CustomCheckbox
+                  label="Direct Message"
+                  status={values.contactMethod === 'Direct Message'}
+                  onPress={() => setFieldValue('contactMethod', 'Direct Message')}
+                />
+                <CustomCheckbox
+                  label="Phone Call"
+                  status={values.contactMethod === 'Phone Call'}
+                  onPress={() => setFieldValue('contactMethod', 'Phone Call')}
+                />
+                <CustomCheckbox
+                  label="Text"
+                  status={values.contactMethod === 'Text'}
+                  onPress={() => setFieldValue('contactMethod', 'Text')}
+                />
+                <CustomCheckbox
+                  label="Email"
+                  status={values.contactMethod === 'Email'}
+                  onPress={() => setFieldValue('contactMethod', 'Email')}
+                />
                 <HelperText type="error" visible={touched.contactMethod && !!errors.contactMethod}>
                   {errors.contactMethod}
                 </HelperText>
               </View>
 
-              {/* --- Submit Button --- */}
-              <Button 
-                mode="contained" 
-                onPress={() => handleSubmit()} // Use Formik's handleSubmit
+              <View style={styles.switchRowContainer}>
+                <View style={styles.switchLabelContainer}>
+                  <Text style={styles.switchLabel}>Share Listing Location</Text>
+                  {isFetchingLocation && (
+                    <ActivityIndicator size="small" style={styles.activityIndicator} />
+                  )}
+                </View>
+                <Switch
+                  value={values.shareLocation}
+                  onValueChange={(newValue) => handleLocationToggle(newValue, setFieldValue)}
+                  color={theme.colors.primary}
+                  disabled={isFetchingLocation}
+                />
+              </View>
+
+              {formError && (
+                <HelperText type="error" style={styles.formErrorText}>
+                  {formError}
+                </HelperText>
+              )}
+              <Button
+                mode="contained"
+                onPress={() => { 
+                    setSubmitCount((prev: number) => prev + 1); 
+                    handleSubmit(); 
+                }} 
                 style={styles.submitButton}
-                disabled={isSubmitting} // Disable during submit
+                disabled={isSubmitting} 
                 loading={isSubmitting}
               >
                 Update Listing
               </Button>
             </View>
-          );
-        }}
-      </Formik>
-    </ScrollView>
+          )}
+        </Formik>
+      </ScrollView>
+    </View>
   );
 };
 

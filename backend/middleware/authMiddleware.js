@@ -31,13 +31,22 @@ const authMiddleware = (req, res, next) => {
   }
   // console.log(`${logPrefix} Token extracted: ${token.substring(0, 15)}...`);
 
+  // AI: Add log to confirm token extraction before verification attempt
+  console.log(`${logPrefix} Extracted token successfully. Proceeding to verification...`);
+
   try {
-    // console.log(`${logPrefix} Verifying token...`);
+    console.log(`${logPrefix} Entering verification try block...`);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log(`${logPrefix} Token verified successfully. Decoded payload:`, decoded);
-    req.user = decoded; // Attach user info to the request object
-    // console.log(`${logPrefix} req.user populated.`);
-    next(); // Proceed to the next middleware or route handler
+    console.log(`${logPrefix} Token verified successfully. Decoded payload:`, JSON.stringify(decoded)); 
+
+    // AI: Assign to req.user
+    req.user = decoded; 
+    console.log(`${logPrefix} Assigned decoded payload to req.user.`);
+
+    // AI: Log before calling next()
+    console.log(`${logPrefix} Proceeding to call next()...`);
+    next(); 
+    console.log(`${logPrefix} next() called successfully.`); // Should ideally not be reached if next() passes control
   } catch (error) {
     console.error(`${logPrefix} Error verifying token:`, error.name, error.message);
     console.error(`${logPrefix} Full Error:`, error);

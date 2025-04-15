@@ -18,7 +18,7 @@ import {
   Modal,
   Portal,
   Surface,
-} from 'react-native-paper';
+} from 'react-native-paper'; // AI: Removed Searchbar import
 import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack'; // Import StackNavigationProp
@@ -32,7 +32,7 @@ import { API_BASE_URL } from '@env';
 console.log('[HomeScreen] API_BASE_URL:', API_BASE_URL); // Log API_BASE_URL on component load
 
 import { useCart } from '../contexts/CartContext';
-import SearchBar from '../components/SearchBar';
+import SearchBar from '../components/SearchBar'; // AI: Import custom SearchBar
 
 // Define composite navigation prop type
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -51,7 +51,7 @@ interface MarketplaceItem {
   _id: string;
   title: string;
   producer: string;
-  price: string;
+  price: number; // AI: Changed type to number
   description: string;
   imageUri: string | null; // Allow null if no image
   location?: { type: 'Point'; coordinates: [number, number] }; // Added specific location type
@@ -162,11 +162,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   // --- Filter Data --- 
   // Helper function to parse price string (handles '$', ',', etc.)
-  const parsePrice = (priceStr: string): number => {
-    if (!priceStr) return 0;
-    // Remove currency symbols, commas, and keep only numbers and decimal point
-    const cleanedPrice = priceStr.replace(/[^0-9.]+/g, '');
-    return parseFloat(cleanedPrice) || 0; // Return 0 if parsing fails
+  // AI: Adjusted parsePrice - its relevance might decrease if price is always a number now.
+  // It mainly handles potential formatting issues if data was inconsistent.
+  // If price is guaranteed number, direct use might be better.
+  // Keeping a safe version for now.
+  const parsePrice = (priceInput: number | string | undefined | null): number => {
+    if (typeof priceInput === 'number') {
+      return priceInput; // Already a number
+    }
+    if (typeof priceInput === 'string') {
+      // Remove '$' and ',' before parsing
+      const cleanedPrice = priceInput.replace(/[$,]/g, ''); 
+      const price = parseFloat(cleanedPrice);
+      return isNaN(price) ? 0 : price; // Return 0 if parsing fails
+    }
+    return 0; // Default to 0 for null, undefined, or other types
   };
 
   const freeItems = marketplaceItems.filter(item => parsePrice(item.price) === 0);
@@ -328,46 +338,39 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   // Helper to format price with unit/size
   const formatPrice = (item: MarketplaceItem): string => {
-    const priceValue = parseFloat(item.price) || 0;
-    // If price is 0.00, display 'Free' immediately
-    if (priceValue === 0) {
-      return 'Free';
+    // AI: Directly use the numeric price. Handle 0 specifically for 'Free'.
+    const priceValue = item.price; // Price is now a number
+
+    if (typeof priceValue !== 'number' || isNaN(priceValue)) {
+      return 'N/A'; // Handle cases where price might still be invalid/missing
     }
 
-    let displayPrice = `$${priceValue.toFixed(2)}`; // Always show $ and 2 decimal places
+    if (priceValue === 0) {
+      return 'Free'; // Display 'Free' for $0.00 items
+    }
+
+    const formattedPrice = `$${priceValue.toFixed(2)}`; // Format number to 2 decimal places
 
     // Prioritize sizeMeasurement if it exists
     if (item.sizeMeasurement) {
-      displayPrice += ` / ${item.sizeMeasurement}`;
+      return `${formattedPrice} / ${item.sizeMeasurement}`;
     } 
     // Otherwise, use unitType if it's meaningful
     else if (item.unitType && item.unitType !== 'N/A' && item.unitType !== 'other') {
-      displayPrice += ` / ${item.unitType}`;
+      return `${formattedPrice} / ${item.unitType}`;
     }
 
-    return displayPrice;
+    return formattedPrice;
   };
 
   // Render item function for FlatList
   const renderItem = ({ item }: { item: MarketplaceItem }) => {
-    const imageUri = item.imageUri ? `${API_BASE_URL}/${item.imageUri.startsWith('/') ? item.imageUri.substring(1) : item.imageUri}` : null;
+    const imageSource = item.imageUri && (item.imageUri.startsWith('http://') || item.imageUri.startsWith('https://'))
+      ? { uri: item.imageUri }
+      : null; // AI: Ensure placeholder logic is fully removed
 
-    // --- Format Price String Components --- START
-    let priceAmount = '';
-    let priceUnit = '';
-    if (item.price) {
-      priceAmount = `$${Number(item.price).toFixed(2)}`;
-      if (item.unitType === 'unit') {
-        priceUnit = `/ unit`; // Keep it simple, quantity shown in modal
-      } else if (item.unitType === 'size' && item.sizeMeasurement) {
-        priceUnit = `/ ${item.sizeMeasurement}`;
-      }
-    }
-    // --- Format Price String Components --- END
-
-    // Use require for the fallback image source
-    const fallbackImageSource = require('../../assets/icon.png');
-    const imageSource = imageUri ? { uri: imageUri } : fallbackImageSource;
+    const displayPrice = formatPrice(item);
+    const isFree = displayPrice === 'Free';
 
     return (
       // Wrap custom View in Pressable to trigger modal
@@ -379,35 +382,50 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {/* Custom Card Container using View - Handles content, bg, border radius, overflow */}
           <View style={styles.customCardContainer}>
             {/* Custom Cover Image */}
-            <Image 
-              source={imageSource} 
-              style={styles.customCardCoverImage}
-              resizeMode='cover' // Ensure image covers the area
-            />
-
+            <View style={styles.imageContainer}>
+              {imageSource ? (
+                <Image 
+                  source={imageSource} 
+                  style={styles.customCardCoverImage}
+                  resizeMode='cover' // Ensure image covers the area
+                  onError={(error) => console.warn(`[HomeScreen Card] Image load error for ${item._id}:`, error.nativeEvent.error)}
+                />
+              ) : (
+                null // AI: Ensure placeholder logic is fully removed
+              )}
+              {/* AI: Price/Free Tag positioned over the image */} 
+              {!isFree && (
+                <View style={styles.priceTagContainer}>
+                  <Text style={styles.priceTagText}>{displayPrice}</Text>
+                </View>
+              )}
+              {isFree && (
+                <View style={styles.freeTagContainer}> 
+                  <Text style={styles.freeTagText}>Free</Text>
+                </View>
+              )}
+            </View>
             {/* Custom Card Content Area */}
             <View style={styles.customCardContent}>
-              {/* Top Row: Title and Price (Keep existing structure) */}
-              <View style={styles.cardTopRow}>
-                <Text variant="titleMedium" style={styles.cardTitle} numberOfLines={1} ellipsizeMode='tail'>
+              {/* AI: Content Top Section (Title, Free Tag, Description) */} 
+              <View style={styles.contentTopSection}> 
+                {/* AI: Ensure Title Text is present and uses correct style */} 
+                <Text 
+                  variant="titleMedium" 
+                  style={styles.cardTitle} 
+                >
                   {item.title}
                 </Text>
-                {/* Price Container */}
-                <View style={styles.cardPriceContainer}>
-                  <Text style={styles.cardPriceAmount}>{priceAmount}</Text>
-                  <Text style={styles.cardPriceUnit}>{priceUnit}</Text>
-                </View>
+                <Text 
+                  variant="bodySmall" 
+                  style={styles.cardDescription} 
+                  numberOfLines={2} 
+                  ellipsizeMode='tail'
+                >
+                  {item.description}
+                </Text>
               </View>
-
-              {/* Middle Rows: Producer and Description */}
-              <Text variant="bodyMedium" style={styles.cardProducer} numberOfLines={1} ellipsizeMode='tail'>
-                {item.producer}
-              </Text>
-              <Text variant="bodySmall" style={styles.cardDescription} numberOfLines={2} ellipsizeMode='tail'>
-                {item.description}
-              </Text>
-
-              {/* Bottom Row: Expiration Date (aligned right) */}
+              {/* Bottom Row: Expiration Date (aligned right) */} 
               <View style={styles.cardBottomRow}>
                 {item.expiryDate && typeof item.expiryDate === 'string' && item.expiryDate.length > 0 && (
                   <Text variant="labelSmall" style={styles.cardExpiration}>
@@ -436,15 +454,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       flex: 1,
     },
     scrollViewContent: {
-      paddingVertical: 10, // Apply padding to the scroll content instead
+      paddingVertical: 0, // Apply padding to the scroll content instead
     },
     sectionContainer: {
-      marginBottom: 15, // Space between sections
+      marginBottom: 0, // Space between sections
       paddingHorizontal: 10, // Reduce horizontal padding to move content left
     },
     sectionTitle: {
       marginLeft: 10,
-      marginBottom: 5, // Space below title
+      fontSize: 20,
+      marginBottom: 0, // Space below title
+      marginTop: -5, // Space above title
     },
     // --- Styles for Custom Card --- START
     shadowWrapper: { // Wrapper to handle shadow separately from overflow:hidden
@@ -458,7 +478,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     },
     customCardContainer: {
       width: 200, 
-      height: 250, 
+      height: 240, 
       backgroundColor: theme.colors.surface, 
       borderRadius: 8, 
       overflow: 'hidden', // Keep for clipping image corners
@@ -475,13 +495,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     customCardContent: {
       paddingVertical: 8, // Adjusted vertical padding
       paddingHorizontal: 12, // Keep horizontal padding
+      flexDirection: 'column', // AI: Ensure vertical stacking
+      flex: 1, // AI: Allow content area to grow and fill available space
     },
     // --- Styles for Custom Card --- END
 
     cardTitle: {
       fontWeight: 'bold',
-      flex: 1, // Allow title to take available space
-      marginRight: 10, // Add space between title and price
+      marginBottom: 4, // Add some space below the title if it wraps
     },
     cardProducer: { // Added back to fix lint error
       marginTop: -2, // Space below title/price row
@@ -520,7 +541,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     cardBottomRow: {
       flexDirection: 'row',
       justifyContent: 'flex-end', // Align expiration to the right
-      marginTop: 6, // Added space above the expiration date
+      marginTop: 'auto', // AI: Push this row to the bottom of the flex container
     },
     // --- Styles for Loading/Error/Empty States --- START
     centeredMessageContainer: {
@@ -613,6 +634,69 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     modalValue: {
       fontSize: 16,
     },
+    placeholderImage: {
+      backgroundColor: theme.colors.surfaceVariant, // Use a subtle background color
+      justifyContent: 'center', // Center the text vertically
+      alignItems: 'center', // Center the text horizontally
+    },
+    placeholderText: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant, // Use a less prominent color
+    },
+    // --- Styles for Listing Cards --- START
+    imageContainer: {
+      position: 'relative', // Needed for absolute children positioning
+    },
+    priceTagContainer: {
+      position: 'absolute',
+      bottom: 8, // Adjust spacing from bottom
+      right: 8, // Adjust spacing from right
+      backgroundColor: 'rgba(255, 255, 255, 0.9)', // White background with slight transparency
+      borderRadius: 8, // Rounded corners
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      elevation: 2, // Add slight shadow for depth (Android)
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+    },
+    priceTagText: {
+      color: '#4CAF50', // Green color for price
+      fontWeight: 'bold',
+      fontSize: 14, // Adjust font size as needed
+    },
+    contentTopSection: {
+      marginBottom: 4, // Add space between top section and bottom row
+    },
+    freeTagContainer: {
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+    },
+    freeTagText: {
+      color: theme.colors.primary, // Use theme primary color for 'Free'
+      fontWeight: 'bold',
+      fontSize: 14, 
+    },
+    // --- Styles for Listing Cards --- END
+    searchbarWrapper: { // AI: Style for the View wrapping the Searchbar
+      height: 40,         // Desired wrapper height
+      marginTop: 10,       // Space above the search bar
+      justifyContent: 'center', // Center Searchbar vertically if needed
+    },
+    dividerStyle: { // AI: Style for the divider below search bar
+      marginVertical: 10, // Add vertical space around the divider
+    },
   });
 
   // --- Render Loading State --- 
@@ -638,16 +722,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   // --- Render Content --- 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollViewContent}>
-    <SearchBar
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-      placeholder="Search listings by title, description, or producer..."
-    />
+      {/* AI: Wrap Searchbar in a View to control height/margin */} 
+      <View style={styles.searchbarWrapper}> 
+        {/* AI: Use the custom SearchBar */} 
+        <SearchBar
+          placeholder="Search listings..."
+          searchQuery={searchQuery} // Prop expected by custom component?
+          setSearchQuery={setSearchQuery} // Prop expected by custom component?
+        />
+      </View>
+      {/* AI: Add Divider below search bar */} 
+      <Divider style={styles.dividerStyle} />
 
       {/* Section for Free Items */}
       <View style={styles.sectionContainer}>
         <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-          Free Items
+          Free
         </Text>
         {freeItems.length > 0 ? (
           <FlatList
@@ -668,7 +758,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       {/* Section for Paid Items */}
       <View style={styles.sectionContainer}>
         <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-          Other Items
+          Other
         </Text>
         {paidItems.length > 0 ? (
           <FlatList
@@ -703,13 +793,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 {/* ScrollView for details - occupies available space */}
                 <ScrollView style={styles.modalScroll}> 
                   <Text style={styles.modalTitle}>{selectedItem.title}</Text>
-                  {selectedItem.imageUri && (
-                    <Image
-                      source={{ uri: `${API_BASE_URL}/${selectedItem.imageUri.startsWith('/') ? selectedItem.imageUri.substring(1) : selectedItem.imageUri}` }}
-                      style={styles.modalImage}
-                      resizeMode="contain" // Ensure the entire image fits
-                    />
-                  )}
+                  {(() => {
+                    const modalImageSource = selectedItem.imageUri && (selectedItem.imageUri.startsWith('http://') || selectedItem.imageUri.startsWith('https://'))
+                      ? { uri: selectedItem.imageUri }
+                      : null; // Or placeholder
+
+                    return modalImageSource ? (
+                      <Image
+                        source={modalImageSource}
+                        style={styles.modalImage}
+                        resizeMode="contain" // Ensure the entire image fits
+                        onError={(error) => console.warn(`[HomeScreen Modal] Image load error for ${selectedItem._id}:`, error.nativeEvent.error)}
+                      />
+                    ) : (
+                      <View style={[styles.modalImage, styles.placeholderImage]} >
+                         <Text style={styles.placeholderText}>No Image</Text>
+                      </View>
+                    );
+                  })()}
                   <Text style={styles.detailText}>Producer: {selectedItem.producer || 'N/A'}</Text>
                   <Text style={styles.detailText}>Price: {formatPrice(selectedItem)}</Text>
                   <Text style={styles.detailText}>Description: {selectedItem.description || 'N/A'}</Text>
